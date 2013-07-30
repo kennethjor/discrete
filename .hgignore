@@ -1,0 +1,10 @@
+syntax: regexp
+
+node_modules/
+\.idea/(?!codeStyleSettings\.xml)
+build/
+^dist/
+^temp/
+^npm-debug\.log$
+^\.DS_Store$
+
