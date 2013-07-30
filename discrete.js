@@ -1,4 +1,4 @@
-/*! Discrete 0.0.1 - MIT license */
+/*! Discrete 0.1.0-dev - MIT license */
 (function() {
   var Async, Calamity, Collection, Discrete, Map, Model, Persistor, Set, calamity, exports, object_toString, root, _, _ref,
     __hasProp = {}.hasOwnProperty,
@@ -34,7 +34,7 @@
   }
 
   Discrete = {
-    version: "0.0.1"
+    version: "0.1.0-dev"
   };
 
   if (typeof exports !== "undefined") {
