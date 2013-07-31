@@ -33,6 +33,12 @@ module.exports = (grunt) ->
 				cwd: ""
 				src: "build/spec/**/*.js"
 
+		coffeelint:
+			src:
+				files:
+					src: files
+			options: require "./coffeelint.coffee"
+
 		concat:
 			# Packages the final JS file with a header
 			dist:
@@ -57,6 +63,7 @@ module.exports = (grunt) ->
 	grunt.loadNpmTasks "grunt-contrib-copy"
 	grunt.loadNpmTasks "grunt-contrib-watch"
 	grunt.loadNpmTasks "grunt-jessie"
+	grunt.loadNpmTasks "grunt-coffeelint"
 
 	grunt.registerTask "default", [
 		"coffee:all"
@@ -64,4 +71,5 @@ module.exports = (grunt) ->
 		"concat:dist"
 		"copy:dist"
 		"jessie"
+		"coffeelint"
 	]

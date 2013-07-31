@@ -125,6 +125,6 @@ Discrete.Map = class Map
 			if _.isFunction(key.toString) and key.toString isnt object_toString
 				key = key.toString()
 		else
-			key = ""+key
+			key = "#{key}"
 		throw new Error "Failed to convert key to string" unless _.isString key
 		return key
