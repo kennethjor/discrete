@@ -1,13 +1,20 @@
 Discrete.Model = class Model
 	Calamity.emitter @prototype
 
+	# Model field definitions.
+	# The key is the field name, and the value may contain the following values:
+	#
+	# * `default`: The default value for the field.
+	# * `relation`: The relation specification. This can either be a string or a `Relation` object.
+	fields: null
+
 	# Default values to be assigned automatically.
 	# Any functions defined here will be executed and their return values will be used as the default.
 	# These functions are executed once per needed default value, and they take the current values object as their only argument.
-	defaults: {}
+	#defaults: {}
 
 	# Defined relations.
-	relations: {}
+	#relations: {}
 
 	# The `Persistor` to use for this model.
 	# The value for this attribute should be a constructor method.
@@ -24,7 +31,7 @@ Discrete.Model = class Model
 			delete values.id
 		# Prepare internal containers.
 		@_values = {}
-		@_persistor = null
+		@_relations = {}
 		# Populate default values.
 		values = @_defaults values
 		# Set values.
@@ -32,15 +39,47 @@ Discrete.Model = class Model
 
 	# Populates default values.
 	_defaults: (values = {}) ->
-		for own key, val of @defaults
+		for own name, field of @fields
+			# Ignore if no default is defined.
+			continue if field.default is undefined
+			val = field.default
 			# Ignore existing values.
-			continue if values[key]?
+			continue if values[name]?
 			# Execute default function.
 			if _.isFunction val
-				values[key] = val values
+				values[name] = val values
+			# Otherwise just set it.
 			else
-				values[key] = val
+				values[name] = val
 		return values
+
+	# Returns a `Relation`.
+	_getRelation: (name) ->
+		field = @fields[name]
+		# Check for known field definition.
+		return null unless field?
+		# Check for relation definition.
+		relation = field.relation
+		return null unless relation?
+		# Return the current relation if we have it.
+		current = @_relations[name]
+		return current if current?
+		# If relation is an instance, clone it.
+		if relation instanceof Relation
+			relation = relation.clone()
+		# If it's a string, construct it.
+		else if _.isString relation
+			relationType = Relation.get relation
+			relation = new relationType
+		# If it's a function, construct it also.
+		else if _.isFunction relation
+			relation = new relation
+		# Otherwise, complain about it.
+		else
+			throw new Error "Relation must be either a string, function, or a Relation object"
+		# Save and return.
+		@_relations[name] = relation
+		return relation
 
 	# ID getter/setter.
 	id: (id) ->
@@ -147,11 +186,11 @@ Discrete.Model = class Model
 	# Returns a persistor instance to use for this model.
 	# Set the `persistor` class attribute to your desired `Persistor` constructor function, or override this method to add custom functionality.
 	getPersistor: ->
-		unless @_persistor?
-			persistor = @persistor
-			throw new Error "Persistor not defined" unless persistor? and typeof persistor is "function"
-			@_persistor = new persistor()
-		return @_persistor
+		persistor = @persistor
+		throw new Error "Persistor not defined" unless persistor?
+		return persistor if persistor instanceof Persistor
+		@persistor = new persistor
+		return @persistor
 
 	# Saves the model through the defined persistor.
 	save: (done) ->

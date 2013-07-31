@@ -5,6 +5,11 @@ files = [
 	"src/Set.coffee"
 	"src/Map.coffee"
 	"src/Persistor.coffee"
+	"src/Relation.coffee"
+	"src/Relation/HasOneRelation.coffee"
+	"src/Relation/HasManyRelation.coffee"
+	"src/ModelRepo.coffee"
+	"src/RepoPersistor.coffee"
 ]
 
 module.exports = (grunt) ->

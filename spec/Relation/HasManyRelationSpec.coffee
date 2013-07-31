@@ -6,7 +6,7 @@ Discrete = require "../../discrete"
 
 TestPersistor = require "../TestPersistor"
 
-describe "HasOneRelation", ->
+describe "HasManyRelation", ->
 	relation = null
 	beforeEach ->
 		relation = new HasMany

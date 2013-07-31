@@ -1,11 +1,13 @@
 _ = require "underscore"
 sinon = require "sinon"
-{Model, Persistor, Collection} = require "../discrete"
-TestPersistor = require "./TestPersistor"
+Discrete = require "../discrete"
+{Model, Persistor, Collection, RepoPersistor} = Discrete
+{HasMany, HasOne} = Discrete.Relation
 
 describe "Model", ->
 	model = null
 	beforeEach ->
+		RepoPersistor.reset()
 		model = new Model
 
 	it "should be empty when first created", ->
@@ -35,9 +37,11 @@ describe "Model", ->
 
 	describe "default values", ->
 		class Test extends Model
-			defaults:
-				foo: "FOO"
-				bar: "BAR"
+			fields:
+				foo:
+					"default": "FOO"
+				bar:
+					"default": "BAR"
 
 		it "should be applied when creating the model", ->
 			model = new Test
@@ -172,16 +176,18 @@ describe "Model", ->
 			expect(clone.get "foo").toBe model.get "foo"
 			expect(clone.get "bar").toBe model.get "bar"
 
-	describe "persistence", ->
+	describe "persistor", ->
 		save = null
+		load = null
 		done = null
 
-		class TestModel extends Model
-			persistor: TestPersistor
+		class PersistorModel extends Model
+			persistor: RepoPersistor
 
 		beforeEach ->
-			model = new TestModel
+			model = new PersistorModel id:1
 			save = sinon.spy model.getPersistor(), "save"
+			load = sinon.spy model.getPersistor(), "load"
 			done = sinon.spy()
 
 		it "should complain if not persistor is defined", ->
@@ -193,18 +199,47 @@ describe "Model", ->
 		it "should auto-construct the persistor, but keep a single instance around", ->
 			persistor = model.getPersistor()
 			expect(typeof persistor).toBe "object"
-			expect(persistor instanceof TestPersistor).toBe true
+			expect(persistor instanceof RepoPersistor).toBe true
 			expect(model.getPersistor()).toBe persistor
 
-		it "should delegate to the defined persistor, executing the supplied callback when complete", ->
+		it "should use the supplied persistor if an instance is supplied rather than a constructor", ->
+			persistor = new RepoPersistor
+			model.persistor = persistor
+			expect(model.getPersistor()).toBe persistor
+
+		it "should save through the persistor", ->
 			model.save(done)
 			waitsFor (-> done.called), "Done never called", 100
 			runs ->
 				expect(save.callCount).toBe 1
-				call = save.getCall 0
-				expect(call.args[0]).toBe model
+				# Verify save was called correctly on the persistor.
+				saveCall = save.getCall 0
+				expect(saveCall.args[0]).toBe model
+				# Verify callback.
+				doneCall = done.getCall 0
+				expect(doneCall.args[0]).toBe null # error
+				expect(doneCall.args[1]).toBe model
 
 	describe "relations", ->
+		class RelationalModel extends Model
+			fields:
+				foo:
+					relation: "HasOne"
+				bar:
+					relation: "HasMany"
+
+		beforeEach ->
+			model = new RelationalModel
+
+		it "should return relation definitions", ->
+			foo = model._getRelation "foo"
+			bar = model._getRelation "bar"
+			expect(typeof foo).toBe "object"
+			expect(typeof bar).toBe "object"
+			expect(foo instanceof HasOne).toBe true
+			expect(bar instanceof HasMany).toBe true
+
+	xdescribe "relations", ->
 		class RelationalModel extends Model
 			persistor: TestPersistor
 			relations:

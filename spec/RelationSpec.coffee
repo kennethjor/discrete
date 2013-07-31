@@ -11,8 +11,7 @@ describe "Relation", ->
 	it "should return the relation when registering", ->
 		expect(Relation.register "Test", TestRelation).toBe TestRelation
 
-	it "should complain if supplied relation doesn't extend Relation", ->
-		class NotRelation
+	xit "should complain if requested relation doesn't exist", ->
 		test = ->
-			Relation.register "No", NotRelation
-		expect(test).toThrow "Supplied relation \"No\" does not extend Relation"
+			Relation.get "No"
+		expect(test).toThrow "Unknown relation type: \"No\""

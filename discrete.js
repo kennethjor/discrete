@@ -1,8 +1,9 @@
 /*! Discrete 0.1.0-dev - MIT license */
 (function() {
-  var Async, Calamity, Collection, Discrete, Map, Model, Persistor, Set, calamity, exports, object_toString, root, _, _ref,
+  var Async, Calamity, Collection, Discrete, HasManyRelation, HasOneRelation, Map, Model, ModelRepo, Persistor, Relation, RepoPersistor, Set, calamity, exports, object_toString, root, _, _ref, _ref1,
     __hasProp = {}.hasOwnProperty,
-    __extends = function(child, parent) { for (var key in parent) { if (__hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor(); child.__super__ = parent.prototype; return child; };
+    __extends = function(child, parent) { for (var key in parent) { if (__hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor(); child.__super__ = parent.prototype; return child; },
+    __slice = [].slice;
 
   root = this;
 
@@ -50,9 +51,7 @@
   Discrete.Model = Model = (function() {
     Calamity.emitter(Model.prototype);
 
-    Model.prototype.defaults = {};
-
-    Model.prototype.relations = {};
+    Model.prototype.fields = null;
 
     Model.prototype.persistor = null;
 
@@ -63,30 +62,62 @@
         delete values.id;
       }
       this._values = {};
-      this._persistor = null;
+      this._relations = {};
       values = this._defaults(values);
       this.set(values);
     }
 
     Model.prototype._defaults = function(values) {
-      var key, val, _ref;
+      var field, name, val, _ref;
       if (values == null) {
         values = {};
       }
-      _ref = this.defaults;
-      for (key in _ref) {
-        if (!__hasProp.call(_ref, key)) continue;
-        val = _ref[key];
-        if (values[key] != null) {
+      _ref = this.fields;
+      for (name in _ref) {
+        if (!__hasProp.call(_ref, name)) continue;
+        field = _ref[name];
+        if (field["default"] === void 0) {
+          continue;
+        }
+        val = field["default"];
+        if (values[name] != null) {
           continue;
         }
         if (_.isFunction(val)) {
-          values[key] = val(values);
+          values[name] = val(values);
         } else {
-          values[key] = val;
+          values[name] = val;
         }
       }
       return values;
+    };
+
+    Model.prototype._getRelation = function(name) {
+      var current, field, relation, relationType;
+      field = this.fields[name];
+      if (field == null) {
+        return null;
+      }
+      relation = field.relation;
+      if (relation == null) {
+        return null;
+      }
+      current = this._relations[name];
+      if (current != null) {
+        return current;
+      }
+      if (relation instanceof Relation) {
+        relation = relation.clone();
+      } else if (_.isString(relation)) {
+        relationType = Relation.get(relation);
+        relation = new relationType;
+      } else if (_.isFunction(relation)) {
+        relation = new relation;
+      } else {
+        throw new Error("Relation must be either a string, function, or a Relation object");
+      }
+      this._relations[name] = relation;
+      return relation;
     };
 
     Model.prototype.id = function(id) {
@@ -209,14 +240,15 @@
 
     Model.prototype.getPersistor = function() {
       var persistor;
-      if (this._persistor == null) {
-        persistor = this.persistor;
-        if (!((persistor != null) && typeof persistor === "function")) {
-          throw new Error("Persistor not defined");
-        }
-        this._persistor = new persistor();
+      persistor = this.persistor;
+      if (persistor == null) {
+        throw new Error("Persistor not defined");
       }
-      return this._persistor;
+      if (persistor instanceof Persistor) {
+        return persistor;
+      }
+      this.persistor = new persistor;
+      return this.persistor;
     };
 
     Model.prototype.save = function(done) {
@@ -622,8 +654,295 @@
       throw new Error("Save not extended");
     };
 
+    Persistor.prototype.load = function(model, callback) {
+      throw new Error("Load not extended");
+    };
+
     return Persistor;
 
   })();
+
+  Discrete.Relation = Relation = (function() {
+    Relation.prototype.type = null;
+
+    function Relation(options) {
+      this.options = options != null ? options : {};
+      if (this.type == null) {
+        this.type = this.options.type;
+      }
+    }
+
+    Relation.prototype.verifyType = function(model) {
+      if ((this.type != null) && model instanceof this.type !== true) {
+        throw new Error("Invalid model type supplied");
+      }
+      return true;
+    };
+
+    Relation.prototype.empty = function() {
+      throw new Error("empty() not extended");
+    };
+
+    Relation.prototype.loaded = function() {
+      throw new Error("loaded() not extended");
+    };
+
+    Relation.prototype.serialize = function() {
+      throw new Error("serialize() not extended");
+    };
+
+    Relation.prototype.clone = function() {
+      throw new Error;
+    };
+
+    Relation.prototype.load = function(persistor, callback) {
+      throw new Error("Load not extended");
+    };
+
+    Relation.prototype.save = function(persistor, callback) {
+      throw new Error("Save not extended");
+    };
+
+    /*
+       STATIC METHODS.
+    */
+
+
+    Relation.register = function(name, func) {
+      var _base;
+      this[name] = func;
+      (_base = func.prototype).clone || (_base.clone = (function(func) {
+        return new func(this.options);
+      })(func));
+      return func;
+    };
+
+    Relation.get = function(name) {
+      if (this[name] == null) {
+        throw new Error("Unknown relation type: \"" + name + "\"");
+      }
+      return this[name];
+    };
+
+    return Relation;
+
+  })();
+
+  Relation.register("HasOne", HasOneRelation = (function(_super) {
+    __extends(HasOneRelation, _super);
+
+    function HasOneRelation(options) {
+      if (options == null) {
+        options = {};
+      }
+      HasOneRelation.__super__.constructor.apply(this, arguments);
+      this._id = null;
+      this._model = null;
+    }
+
+    HasOneRelation.prototype.set = function(modelOrId) {
+      if (modelOrId instanceof Model) {
+        this.verifyType(modelOrId);
+        this._model = modelOrId;
+        return this._id = modelOrId.id();
+      } else {
+        this._id = modelOrId;
+        if (this._model !== null && this._model.id() !== modelOrId) {
+          return this._model = null;
+        }
+      }
+    };
+
+    HasOneRelation.prototype.id = function() {
+      if (this._model) {
+        return this._model.id();
+      } else {
+        return this._id;
+      }
+    };
+
+    HasOneRelation.prototype.model = function() {
+      return this._model;
+    };
+
+    HasOneRelation.prototype.empty = function() {
+      return this._id == null;
+    };
+
+    HasOneRelation.prototype.loaded = function() {
+      return this.empty() || (this._model != null);
+    };
+
+    HasOneRelation.prototype.serialize = function() {
+      return this.id();
+    };
+
+    HasOneRelation.prototype.load = function(persistor, callback) {
+      var _this = this;
+      if (this.empty()) {
+        _.defer(function() {
+          return callback(null, null);
+        });
+        return;
+      }
+      if (this.loaded()) {
+        _.defer(function() {
+          return callback(null, _this.model());
+        });
+        return;
+      }
+      return persistor.load(this.id(), function(err, model) {
+        if (err) {
+          callback(err, null);
+          return;
+        }
+        return _this.set(model);
+      });
+    };
+
+    HasOneRelation.prototype.save = function(persistor, callback) {
+      var _this = this;
+      if (this.empty() || !this.loaded()) {
+        callback(null, this.model());
+        return;
+      }
+      return persistor.save(this.model(), function(err, model) {
+        if (err) {
+          _.defer(function() {
+            return callback(err, null);
+          });
+          return;
+        }
+        _this.set(model);
+        return _.defer(function() {
+          return callback(null, model);
+        });
+      });
+    };
+
+    return HasOneRelation;
+
+  })(Relation));
+
+  Relation.register("HasMany", HasManyRelation = (function(_super) {
+    __extends(HasManyRelation, _super);
+
+    function HasManyRelation(options) {
+      HasManyRelation.__super__.constructor.apply(this, arguments);
+      options || (options = {});
+    }
+
+    return HasManyRelation;
+
+  })(Relation));
+
+  Discrete.ModelRepo = ModelRepo = (function() {
+    function ModelRepo() {
+      this._models = {};
+    }
+
+    ModelRepo.prototype.put = function(model) {
+      var id, models;
+      models = this._models;
+      id = model.id();
+      if (id == null) {
+        throw new Error("Models stored in ModelRepo must have an ID set");
+      }
+      if (models[id] != null) {
+        models[id] = this.handleOverwrite(models[id], model);
+      } else {
+        models[id] = model;
+      }
+      return models[id];
+    };
+
+    ModelRepo.prototype.get = function(id) {
+      if (this._models[id] != null) {
+        return this._models[id];
+      }
+      return null;
+    };
+
+    ModelRepo.prototype.size = function() {
+      var id, model, n, _ref1;
+      n = 0;
+      _ref1 = this._models;
+      for (id in _ref1) {
+        if (!__hasProp.call(_ref1, id)) continue;
+        model = _ref1[id];
+        n++;
+      }
+      return n;
+    };
+
+    ModelRepo.prototype.handleOverwrite = function(oldModel, newModel) {
+      return oldModel;
+    };
+
+    return ModelRepo;
+
+  })();
+
+  Discrete.RepoPersistor = RepoPersistor = (function(_super) {
+    var repo;
+
+    __extends(RepoPersistor, _super);
+
+    function RepoPersistor() {
+      _ref1 = RepoPersistor.__super__.constructor.apply(this, arguments);
+      return _ref1;
+    }
+
+    repo = null;
+
+    RepoPersistor.add = function() {
+      var m, models, _i, _len;
+      models = 1 <= arguments.length ? __slice.call(arguments, 0) : [];
+      models = _.flatten([arguments]);
+      for (_i = 0, _len = models.length; _i < _len; _i++) {
+        m = models[_i];
+        repo.put(m);
+        m.persistor = this;
+      }
+      return models[0];
+    };
+
+    RepoPersistor.reset = function() {
+      return repo = new ModelRepo;
+    };
+
+    RepoPersistor.reset();
+
+    RepoPersistor.prototype.load = function(id, callback) {
+      var model,
+        _this = this;
+      model = repo.get(id);
+      if (model == null) {
+        _.defer(function() {
+          return callback(new Error("not-found"), null);
+        });
+        return;
+      }
+      if (_.isFunction(callback)) {
+        return _.defer(function() {
+          return callback(null, model);
+        });
+      }
+    };
+
+    RepoPersistor.prototype.save = function(model, callback) {
+      var id;
+      id = model.id();
+      model = repo.put(model);
+      if (_.isFunction(callback)) {
+        return _.defer(function() {
+          return callback(null, model);
+        });
+      }
+    };
+
+    return RepoPersistor;
+
+  })(Persistor);
 
 }).call(this);
