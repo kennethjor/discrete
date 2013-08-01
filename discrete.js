@@ -941,6 +941,10 @@
       }
     };
 
+    RepoPersistor.prototype.getRepo = function() {
+      return repo;
+    };
+
     return RepoPersistor;
 
   })(Persistor);
