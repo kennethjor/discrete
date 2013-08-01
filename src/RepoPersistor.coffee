@@ -34,3 +34,7 @@ Discrete.RepoPersistor = class RepoPersistor extends Persistor
 		model = repo.put model
 		if _.isFunction callback
 			_.defer -> callback null, model
+
+	# Returns the repo.
+	getRepo: ->
+		return repo

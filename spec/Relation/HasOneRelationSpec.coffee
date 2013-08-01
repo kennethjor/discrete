@@ -60,18 +60,14 @@ describe "HasOneRelation", ->
 		expect(test).toThrow "Invalid model type supplied"
 
 	describe "persistance", ->
-		class PersistentModel extends Model
-			persistor: RepoPersistor
-
-		model = null
 		persistor = null
 		load = null
 		save = null
 		done = null
 
 		beforeEach ->
-			model = new PersistentModel
-			persistor = model.getPersistor()
+			persistor = new RepoPersistor
+			RepoPersistor.reset()
 			load = sinon.spy persistor, "load"
 			save = sinon.spy persistor, "save"
 			done = sinon.spy()

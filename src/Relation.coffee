@@ -47,7 +47,7 @@ Discrete.Relation = class Relation
 	# Registers a relation with the factory.
 	@register = (name, func) ->
 		@[name] = func
-		# Add a clone function.
+		# Add a clone function. @todo remove, it's bad
 		func::clone or= do (func) ->
 			return new func @options
 		return func
