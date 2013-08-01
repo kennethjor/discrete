@@ -18,7 +18,7 @@ module.exports =
 	"no_trailing_semicolons":
 		"level": "error"
 	"no_plusplus":
-		"level": "error"
+		"level": "ignore"
 	"no_throwing_strings":
 		"level": "error"
 	"cyclomatic_complexity":
