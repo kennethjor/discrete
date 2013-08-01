@@ -35,25 +35,6 @@ describe "Model", ->
 		expect(model.get "foo").toBe "foo"
 		expect(model.get "bar").toBe "bar"
 
-	describe "default values", ->
-		class Test extends Model
-			fields:
-				foo:
-					"default": "FOO"
-				bar:
-					"default": "BAR"
-
-		it "should be applied when creating the model", ->
-			model = new Test
-			expect(model.get "foo").toBe "FOO"
-			expect(model.get "bar").toBe "BAR"
-
-		it "should be overridden by initially supplied values", ->
-			model = new Test
-				bar: "other"
-			expect(model.get "foo").toBe "FOO"
-			expect(model.get "bar").toBe "other"
-
 	it "should copy values when setting a whole model", ->
 		other = new Model
 			id: "id:42"
@@ -86,6 +67,25 @@ describe "Model", ->
 					expect(val).toBe "BAR"
 			i++
 		expect(i).toBe 2
+
+	describe "default values", ->
+		class Test extends Model
+			fields:
+				foo:
+					"default": "FOO"
+				bar:
+					"default": "BAR"
+
+		it "should be applied when creating the model", ->
+			model = new Test
+			expect(model.get "foo").toBe "FOO"
+			expect(model.get "bar").toBe "BAR"
+
+		it "should be overridden by initially supplied values", ->
+			model = new Test
+				bar: "other"
+			expect(model.get "foo").toBe "FOO"
+			expect(model.get "bar").toBe "other"
 
 	describe "change events", ->
 		change = null
@@ -215,13 +215,14 @@ describe "Model", ->
 				# Verify save was called correctly on the persistor.
 				saveCall = save.getCall 0
 				expect(saveCall.args[0]).toBe model
-				# Verify callback.
+				# Verify callback was supplied no error and the saved model.
 				doneCall = done.getCall 0
 				expect(doneCall.args[0]).toBe null # error
 				expect(doneCall.args[1]).toBe model
 
 	describe "relations", ->
 		class RelationalModel extends Model
+			persistor: RepoPersistor
 			fields:
 				foo:
 					relation: "HasOne"
@@ -229,95 +230,55 @@ describe "Model", ->
 					relation: "HasMany"
 
 		beforeEach ->
-			model = new RelationalModel
+			model = new RelationalModel id:99
 
-		it "should return relation definitions", ->
-			foo = model._getRelation "foo"
-			bar = model._getRelation "bar"
+		it "should return relation handlers", ->
+			foo = model.getRelation "foo"
+			bar = model.getRelation "bar"
 			expect(typeof foo).toBe "object"
 			expect(typeof bar).toBe "object"
 			expect(foo instanceof HasOne).toBe true
 			expect(bar instanceof HasMany).toBe true
 
-	xdescribe "relations", ->
-		class RelationalModel extends Model
-			persistor: TestPersistor
-			relations:
-				foo:
-					model: Model
-				bar:
-					collection: Collection
-					model: Model
-		model = null
-		foo = null
-		bar = [null,null,null]
-		beforeEach ->
-			foo = new Model
-			foo.id "foo"
-			bar[0] = new Model
-			bar[1] = new Model
-			bar[2] = new Model
-			bar[0].id "bar:0"
-			bar[1].id "bar:1"
-			bar[2].id "bar:2"
-			TestPersistor.add foo, bar
-			model = new RelationalModel
-			model.set
-				foo: foo
-				bar: new Collection bar
-
-		afterEach ->
-			TestPersistor.reset()
-
-		it "should not fetch anything if all relations are loaded", ->
-			load = sinon.spy model.getPersistor(), "load"
-			done = sinon.spy()
-			model.fetch done
-			waitsFor (-> done.called), "Done never called", 100
-			runs ->
-				expect(load.callCount).toBe 0
-				call = done.getCall 0
-				expect(call.args[0]).toBe null
-
-		it "should serialize relations to ID", ->
+		it "should serialize to IDs", ->
+			model.getRelation("foo").set new Model id:1
+			model.getRelation("bar").add new Model id:1
+			model.getRelation("bar").add new Model id:2
 			serial = model.serialize()
-			expect(serial.foo).toBe "foo"
-			expect(JSON.stringify(serial.bar)).toBe JSON.stringify(["bar:0","bar:1","bar:2"])
+			expect(serial.foo).toBe 1
+			expect(serial.bar[0]).toBe 1
+			expect(serial.bar[1]).toBe 2
 
-		it "should contain the raw IDs when deserializing", ->
-			model = new RelationalModel model.serialize()
-			expect(model.get "foo").toBe "foo"
-			expect(JSON.stringify(model.get "bar")).toBe JSON.stringify(["bar:0","bar:1","bar:2"])
+		describe "persistence", ->
+			m1 = new Model id:1
+			m2 = new Model id:2
+			m3 = new Model id:3
+			done = null
 
-		it "should fetch all relations", ->
-			model = new RelationalModel model.serialize()
-			#load = sinon.spy model.getPersistor(), "load"
-			done = sinon.spy()
-			model.fetch done
-			waitsFor (-> done.called), "Done never called", 100
-			runs ->
-				#expect(load.callCount).toBe 4
-				expect(model.get "foo").toBe foo
-				collection = model.get "bar"
-				expect(collection.size()).toBe 3
-				expect(collection.get 0).toBe bar[0]
-				expect(collection.get 1).toBe bar[1]
-				expect(collection.get 2).toBe bar[2]
+			beforeEach ->
+				done = sinon.spy()
 
-#		it "should complain if model relations do not have an ID when saving", ->
-#			done = sinon.spy()
-#			model.set "foo", new Model
-#			model.save done
-#			waitsFor (-> done.called), "Done never called", 100
-#			runs ->
-#				err = done.getCall(0).args[0]
-#				expect(err.message).toBe "Relation \"foo\" does not have an ID when saving model"
+			it "should load through the persistor", ->
+				RepoPersistor.add m1, m2, m3
+				model.set "foo", 1
+				model.set "bar", [2,3]
+				model.fetchRelations done
+				waitsFor (-> done.called), "Done never called", 100
+				runs ->
+					expect(done.callCount).toBe 1
+					expect(model.get "foo").toBe m1
+					bar = model.get "bar"
+					expect(bar.get 0).toBe m2
+					expect(bar.get 1).toBe m3
 
-		it "should complain if collection relation entries do not have an ID when saving", ->
-			done = sinon.spy()
-			model.get("bar").add new Model
-			model.save done
-#			waitsFor (-> done.called), "Done never called", 100
-			#runs ->
-			#	err = done.getCall(0).args[0]
-			#	expect(err.message).toBe "Entry in collection relation \"bar\" does not have an ID when saving model"
+			it "should save through the persistor", ->
+				model.set "foo", m1
+				model.set "bar", [m1, m2]
+				model.save done
+				waitsFor (-> done.called), "Done never called", 100
+				runs ->
+					expect(done.callCount).toBe 1
+					repo = model.getPersistor().getRepo()
+					expect(repo.get 1).toBe m1
+					expect(repo.get 2).toBe m2
+					expect(repo.get 3).toBe m3
