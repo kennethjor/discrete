@@ -262,7 +262,7 @@ describe "Model", ->
 				RepoPersistor.add m1, m2, m3
 				model.set "foo", 1
 				model.set "bar", [2,3]
-				model.fetchRelations done
+				model.loadRelations done
 				waitsFor (-> done.called), "Done never called", 100
 				runs ->
 					expect(done.callCount).toBe 1
@@ -271,14 +271,29 @@ describe "Model", ->
 					expect(bar.get 0).toBe m2
 					expect(bar.get 1).toBe m3
 
-			it "should save through the persistor", ->
-				model.set "foo", m1
-				model.set "bar", [m1, m2]
-				model.save done
-				waitsFor (-> done.called), "Done never called", 100
-				runs ->
-					expect(done.callCount).toBe 1
-					repo = model.getPersistor().getRepo()
-					expect(repo.get 1).toBe m1
-					expect(repo.get 2).toBe m2
-					expect(repo.get 3).toBe m3
+#			describe "should save", -> # no, relations really shouldn't be saved like this ... @todo
+#				beforeEach ->
+#					model.set "foo", m1
+#					model.set "bar", [m1, m2]
+#
+#				it "through the persistor", ->
+#					model.saveRelations done
+#					waitsFor (-> done.called), "Done never called", 100
+#					runs ->
+#						expect(done.callCount).toBe 1
+#						repo = model.getPersistor().getRepo()
+#						expect(repo.get 99).toBe null
+#						expect(repo.get 1).toBe m1
+#						expect(repo.get 2).toBe m2
+#						expect(repo.get 3).toBe m3
+#
+#				it "individual relations through the persistor", ->
+#					model.saveRelations "bar", done
+#					waitsFor (-> done.called), "Done never called", 100
+#					runs ->
+#						expect(done.callCount).toBe 1
+#						repo = model.getPersistor().getRepo()
+#						expect(repo.get 99).toBe null
+#						expect(repo.get 1).toBe null
+#						expect(repo.get 2).toBe m2
+#						expect(repo.get 3).toBe m3

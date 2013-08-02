@@ -1,16 +1,19 @@
 # Base class for relations.
+# These objects manage the functionality of a relation type and also contains the value in question.
+# When a relation is set on a model, it's actually changed in the relation object and not the model,
+# leaving the model free from knowing how to handle individual relation types.
 # Also serves as a factory for relations.
 Discrete.Relation = class Relation
-	# Optional static type for this relation.
-	type: null
-
 	constructor: (@options = {}) ->
-		@type ?= @options.type
+		# Valid options:
+		#
+		# * `model`: Model type to enforce on the relation.
 
 	# Throws an `Error` if the supplied object doesn't match the relation's optional type.
 	# If no type is set, this method returns true.
 	verifyType: (model) ->
-		if @type? and model instanceof @type isnt true
+		options = @options
+		if options.model? and model instanceof options.model isnt true
 			throw new Error "Invalid model type supplied"
 		return true
 
@@ -52,8 +55,23 @@ Discrete.Relation = class Relation
 			return new func @options
 		return func
 
-	# Returns a relation instance based on a string.
-	@get = (name) ->
-		unless @[name]?
-			throw new Error "Unknown relation type: \"#{name}\""
-		return @[name]
+	# Constructs a relation from a model's configuration object.
+	@create = (options) ->
+		# Get type.
+		type = null
+		if _.isString(options) or _.isFunction(options)
+			type = options
+			options = {}
+		else if _.isObject options
+			type = options.type
+		else
+			throw new Error "Options must be either string, function, or object"
+		# Get type if needed.
+		if _.isString type
+			throw new Error "Unknown relation type: \"#{type}\"" unless @[type]?
+			type = @[type]
+		# Complain about missing type.
+		throw new Error "No relation type found" unless type?
+		# Type is now a function, construct.
+		relation = new type options
+		return relation

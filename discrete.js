@@ -2,8 +2,8 @@
 (function() {
   var Async, Calamity, Collection, Discrete, HasManyRelation, HasOneRelation, Map, Model, ModelRepo, Persistor, Relation, RepoPersistor, Set, calamity, exports, object_toString, root, _, _ref, _ref1,
     __hasProp = {}.hasOwnProperty,
-    __extends = function(child, parent) { for (var key in parent) { if (__hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor(); child.__super__ = parent.prototype; return child; },
-    __slice = [].slice;
+    __slice = [].slice,
+    __extends = function(child, parent) { for (var key in parent) { if (__hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor(); child.__super__ = parent.prototype; return child; };
 
   root = this;
 
@@ -92,8 +92,11 @@
       return values;
     };
 
-    Model.prototype._getRelation = function(name) {
-      var current, field, relation, relationType;
+    Model.prototype.getRelation = function(name) {
+      var current, field, relation;
+      if (!this.fields) {
+        return null;
+      }
       field = this.fields[name];
       if (field == null) {
         return null;
@@ -106,16 +109,7 @@
       if (current != null) {
         return current;
       }
-      if (relation instanceof Relation) {
-        relation = relation.clone();
-      } else if (_.isString(relation)) {
-        relationType = Relation.get(relation);
-        relation = new relationType;
-      } else if (_.isFunction(relation)) {
-        relation = new relation;
-      } else {
-        throw new Error("Relation must be either a string, function, or a Relation object");
-      }
+      relation = Relation.create(relation);
       this._relations[name] = relation;
       return relation;
     };
@@ -128,9 +122,9 @@
     };
 
     Model.prototype.set = function(keyOrObj, val) {
-      var key, obj, triggers;
+      var key, obj, oldVal, relation, triggers;
       if (!keyOrObj) {
-        return;
+        return this;
       }
       obj = keyOrObj;
       if (obj instanceof Model) {
@@ -145,8 +139,19 @@
       for (key in obj) {
         if (!__hasProp.call(obj, key)) continue;
         val = obj[key];
+        oldVal = null;
+        relation = this.getRelation(key);
+        if (relation != null) {
+          oldVal = relation.get();
+        } else {
+          oldVal = this._values[key];
+        }
         triggers[key] = this._values[key];
-        this._values[key] = val;
+        if (relation != null) {
+          relation.set(val);
+        } else {
+          this._values[key] = val;
+        }
       }
       this._triggerChanges(triggers);
       return this;
@@ -171,11 +176,19 @@
     };
 
     Model.prototype.get = function(key) {
+      var relation;
+      relation = this.getRelation(key);
+      if (relation != null) {
+        return relation.get();
+      }
       return this._values[key];
     };
 
     Model.prototype.keys = function() {
-      return _.keys(this._values);
+      var keys;
+      keys = _.keys(this._values);
+      keys = _.union(keys, _.keys(this._relations));
+      return keys;
     };
 
     Model.prototype.each = function(fn) {
@@ -200,30 +213,15 @@
     };
 
     Model.prototype.serialize = function() {
-      var collectionArray, field, json, relation, val, _ref;
+      var field, json, name, relation, _ref;
       json = this.toJSON();
-      _ref = this.relations;
-      for (field in _ref) {
-        if (!__hasProp.call(_ref, field)) continue;
-        relation = _ref[field];
-        val = json[field];
-        if (val == null) {
-          continue;
-        }
-        if (relation.collection != null) {
-          if (_.isArray(val)) {
-            val = new relation.collection(val);
-          }
-          collectionArray = [];
-          val.each(function(collectionVal) {
-            if (!(collectionVal instanceof relation.model)) {
-              return;
-            }
-            return collectionArray.push(collectionVal.id());
-          });
-          json[field] = collectionArray;
-        } else if ((relation.model != null) && val instanceof relation.model) {
-          json[field] = val.id();
+      _ref = this.fields;
+      for (name in _ref) {
+        if (!__hasProp.call(_ref, name)) continue;
+        field = _ref[name];
+        relation = this.getRelation(name);
+        if (relation != null) {
+          json[name] = relation.serialize();
         }
       }
       return json;
@@ -252,122 +250,28 @@
     };
 
     Model.prototype.save = function(done) {
-      var field, persistor, relation, val, _ref;
-      persistor = this.getPersistor();
-      _ref = this.relations;
-      for (field in _ref) {
-        if (!__hasProp.call(_ref, field)) continue;
-        relation = _ref[field];
-        val = this.get(field);
-        if (_.isEmpty(val)) {
-          continue;
-        }
-        if (relation.collection != null) {
-          val.each(function(entry) {
-            return (function(entry) {
-              return _.defer(function() {
-                if (entry.id() == null) {
-                  return done(new Error("Entry in collection relation \"" + field + "\" does not have an ID when saving model"));
-                }
-              });
-            })(entry);
-          });
-        } else {
-          (function(val) {
-            return _.defer(function() {
-              if (val.id() == null) {
-                return done(new Error("Relation \"" + field + "\" does not have an ID when saving model"));
-              }
-            });
-          })(val);
-        }
-      }
-      persistor.save(this, done);
-      return this;
+      return this.getPersistor().save(this, done);
     };
 
-    Model.prototype.fetch = function(done) {
-      var current, def, fetchers, field, id, ids, persistor, relation, results, _i, _j, _len, _len1, _ref,
-        _this = this;
+    Model.prototype.loadRelations = function(done) {
+      var fetchers, field, name, persistor, relation, _ref;
       persistor = this.getPersistor();
-      results = {};
-      ids = [];
-      _ref = this.relations;
-      for (field in _ref) {
-        if (!__hasProp.call(_ref, field)) continue;
-        relation = _ref[field];
-        current = this.get(field);
-        if (relation.collection != null) {
-          if (current instanceof relation.collection) {
-            continue;
-          }
-          results[field] = new relation.collection;
-          if (_.isEmpty(current)) {
-            continue;
-          }
-          if (!_.isArray(current)) {
-            throw new Error("" + field + " is not empty and is not an array");
-          }
-          for (_i = 0, _len = current.length; _i < _len; _i++) {
-            id = current[_i];
-            ids.push([field, id]);
-          }
-        } else {
-          if (current instanceof relation.model) {
-            continue;
-          }
-          if (_.isEmpty(current)) {
-            continue;
-          }
-          ids.push([field, current]);
-        }
-      }
       fetchers = [];
-      for (_j = 0, _len1 = ids.length; _j < _len1; _j++) {
-        def = ids[_j];
-        field = def[0];
-        id = def[1];
-        fetchers.push((function(field, id) {
+      _ref = this.fields;
+      for (name in _ref) {
+        if (!__hasProp.call(_ref, name)) continue;
+        field = _ref[name];
+        relation = this.getRelation(name);
+        if (!relation) {
+          continue;
+        }
+        fetchers.push((function(relation) {
           return function(done) {
-            return persistor.load(id, function(err, model) {
-              if (err) {
-                done(err);
-                return;
-              }
-              return done(null, [field, model]);
-            });
+            return relation.load(persistor, done);
           };
-        })(field, id));
+        })(relation));
       }
-      return Async.parallel(fetchers, function(err, fetchResults) {
-        var model, _k, _l, _len2, _len3, _ref1;
-        if (err) {
-          done(err);
-          return;
-        }
-        _ref1 = _this.relations;
-        for (relation = _k = 0, _len2 = _ref1.length; _k < _len2; relation = ++_k) {
-          field = _ref1[relation];
-          if (relation.collection != null) {
-            if (results[field] == null) {
-              results[field] = new relation.collection;
-            }
-          }
-        }
-        for (_l = 0, _len3 = fetchResults.length; _l < _len3; _l++) {
-          def = fetchResults[_l];
-          field = def[0];
-          model = def[1];
-          relation = _this.relations[field];
-          if (relation.collection != null) {
-            results[field].add(model);
-          } else {
-            results[field] = model;
-          }
-        }
-        _this.set(results);
-        return done(null);
-      });
+      return Async.parallel(fetchers, done);
     };
 
     return Model;
@@ -386,15 +290,32 @@
           throw new Error("Initial values for Collection must be either Array or Collection");
         }
       }
+      this._items = [];
       values || (values = []);
-      this._items = values;
+      this.addAll(values);
     }
 
     Collection.prototype.add = function(obj) {
       this._items.push(obj);
       this.trigger("change", {
         type: "add",
-        map: this,
+        collection: this,
+        value: obj
+      });
+      return true;
+    };
+
+    Collection.prototype.addAll = function() {
+      var o, obj, _i, _len;
+      obj = 1 <= arguments.length ? __slice.call(arguments, 0) : [];
+      obj = _.flatten(obj);
+      for (_i = 0, _len = obj.length; _i < _len; _i++) {
+        o = obj[_i];
+        this._items.push(o);
+      }
+      this.trigger("change", {
+        type: "add",
+        collection: this,
         value: obj
       });
       return true;
@@ -409,10 +330,18 @@
       oldVal = this._items.splice(index, 1)[0];
       this.trigger("change", {
         type: "remove",
-        map: this,
+        collection: this,
         oldValue: oldVal
       });
       return true;
+    };
+
+    Collection.prototype.removeAll = function() {
+      this._items = [];
+      return this.trigger("change", {
+        type: "remove",
+        collection: this
+      });
     };
 
     Collection.prototype.get = function(index) {
@@ -428,6 +357,20 @@
 
     Collection.prototype.size = function(obj) {
       return this._items.length;
+    };
+
+    Collection.prototype.replace = function(oldObj, newObj) {
+      var i, o, replaced, _i, _len, _ref;
+      replaced = 0;
+      _ref = this._items;
+      for (i = _i = 0, _len = _ref.length; _i < _len; i = ++_i) {
+        o = _ref[i];
+        if (o === oldObj) {
+          this._items[i] = newObj;
+          replaced++;
+        }
+      }
+      return replaced;
     };
 
     Collection.prototype.isEmpty = function() {
@@ -482,6 +425,27 @@
         return false;
       }
       return Set.__super__.add.apply(this, arguments);
+    };
+
+    Set.prototype.addAll = function() {
+      var added, o, obj, _i, _len;
+      obj = 1 <= arguments.length ? __slice.call(arguments, 0) : [];
+      added = [];
+      obj = _.flatten(obj);
+      for (_i = 0, _len = obj.length; _i < _len; _i++) {
+        o = obj[_i];
+        if (this.contains(o)) {
+          continue;
+        }
+        this._items.push(o);
+        added.push(o);
+      }
+      this.trigger("change", {
+        type: "add",
+        collection: this,
+        value: added
+      });
+      return added.length > 0;
     };
 
     return Set;
@@ -663,17 +627,14 @@
   })();
 
   Discrete.Relation = Relation = (function() {
-    Relation.prototype.type = null;
-
     function Relation(options) {
       this.options = options != null ? options : {};
-      if (this.type == null) {
-        this.type = this.options.type;
-      }
     }
 
     Relation.prototype.verifyType = function(model) {
-      if ((this.type != null) && model instanceof this.type !== true) {
+      var options;
+      options = this.options;
+      if ((options.model != null) && model instanceof options.model !== true) {
         throw new Error("Invalid model type supplied");
       }
       return true;
@@ -717,11 +678,28 @@
       return func;
     };
 
-    Relation.get = function(name) {
-      if (this[name] == null) {
-        throw new Error("Unknown relation type: \"" + name + "\"");
+    Relation.create = function(options) {
+      var relation, type;
+      type = null;
+      if (_.isString(options) || _.isFunction(options)) {
+        type = options;
+        options = {};
+      } else if (_.isObject(options)) {
+        type = options.type;
+      } else {
+        throw new Error("Options must be either string, function, or object");
       }
-      return this[name];
+      if (_.isString(type)) {
+        if (this[type] == null) {
+          throw new Error("Unknown relation type: \"" + type + "\"");
+        }
+        type = this[type];
+      }
+      if (type == null) {
+        throw new Error("No relation type found");
+      }
+      relation = new type(options);
+      return relation;
     };
 
     return Relation;
@@ -765,6 +743,10 @@
       return this._model;
     };
 
+    HasOneRelation.prototype.get = function() {
+      return this.model();
+    };
+
     HasOneRelation.prototype.empty = function() {
       return this._id == null;
     };
@@ -777,45 +759,30 @@
       return this.id();
     };
 
-    HasOneRelation.prototype.load = function(persistor, callback) {
+    HasOneRelation.prototype.load = function(persistor, done) {
       var _this = this;
       if (this.empty()) {
         _.defer(function() {
-          return callback(null, null);
+          return done(null, null);
         });
         return;
       }
       if (this.loaded()) {
         _.defer(function() {
-          return callback(null, _this.model());
+          return done(null, _this.model());
         });
         return;
       }
       return persistor.load(this.id(), function(err, model) {
         if (err) {
-          callback(err, null);
-          return;
-        }
-        return _this.set(model);
-      });
-    };
-
-    HasOneRelation.prototype.save = function(persistor, callback) {
-      var _this = this;
-      if (this.empty() || !this.loaded()) {
-        callback(null, this.model());
-        return;
-      }
-      return persistor.save(this.model(), function(err, model) {
-        if (err) {
           _.defer(function() {
-            return callback(err, null);
+            return done(err, null);
           });
           return;
         }
         _this.set(model);
         return _.defer(function() {
-          return callback(null, model);
+          return done(null, model);
         });
       });
     };
@@ -827,10 +794,152 @@
   Relation.register("HasMany", HasManyRelation = (function(_super) {
     __extends(HasManyRelation, _super);
 
-    function HasManyRelation(options) {
+    function HasManyRelation() {
+      var _base;
       HasManyRelation.__super__.constructor.apply(this, arguments);
-      options || (options = {});
+      (_base = this.options).collection || (_base.collection = Collection);
+      this._ids = new this.options.collection;
+      this._models = new this.options.collection;
     }
+
+    HasManyRelation.prototype.add = function() {
+      var added, id, m, model, modelOrId, _i, _len;
+      modelOrId = 1 <= arguments.length ? __slice.call(arguments, 0) : [];
+      modelOrId = _.flatten(modelOrId);
+      if (modelOrId.length > 1) {
+        for (_i = 0, _len = modelOrId.length; _i < _len; _i++) {
+          m = modelOrId[_i];
+          this.add(m);
+        }
+        return;
+      } else {
+        modelOrId = modelOrId[0];
+      }
+      id = modelOrId;
+      model = modelOrId;
+      if (model instanceof Model) {
+        id = model.id();
+        if (id == null) {
+          throw new Error("Model must have an ID to be added to a relation");
+        }
+      } else {
+        model = null;
+        if (id == null) {
+          throw new Error("No ID supplied for relation");
+        }
+      }
+      added = false;
+      if (this._ids.add(id)) {
+        this._models.add(model || id);
+        added = true;
+      }
+      if (model instanceof Model) {
+        this._models.replace(model.id(), model);
+      }
+      return added;
+    };
+
+    HasManyRelation.prototype.load = function(persistor, done) {
+      var fetchers,
+        _this = this;
+      if (this.empty()) {
+        _.defer(function() {
+          return done(null);
+        });
+        return;
+      }
+      if (this.loaded()) {
+        _.defer(function() {
+          return done(null);
+        });
+        return;
+      }
+      fetchers = {};
+      this._models.each(function(model) {
+        var id;
+        if (model instanceof Model) {
+          return;
+        }
+        id = model;
+        if (fetchers[id] != null) {
+          return;
+        }
+        return fetchers[id] = (function(id) {
+          return function(done) {
+            return persistor.load(id, function(err, model) {
+              if (err) {
+                return _.defer(function() {
+                  return done(err);
+                });
+              } else {
+                if (model) {
+                  _this._models.replace(id, model);
+                }
+                return _.defer(function() {
+                  return done(null);
+                });
+              }
+            });
+          };
+        })(id);
+      });
+      return Async.parallel(fetchers, function(err) {
+        if (err) {
+          return _.defer(function() {
+            return done(err);
+          });
+        } else {
+          return _.defer(function() {
+            return done(null);
+          });
+        }
+      });
+    };
+
+    HasManyRelation.prototype.set = function(modelsOrIds) {
+      var m, _i, _len, _results;
+      modelsOrIds = _.flatten([modelsOrIds]);
+      this._ids.removeAll();
+      this._models.removeAll();
+      _results = [];
+      for (_i = 0, _len = modelsOrIds.length; _i < _len; _i++) {
+        m = modelsOrIds[_i];
+        _results.push(this.add(m));
+      }
+      return _results;
+    };
+
+    HasManyRelation.prototype.get = function() {
+      return this._models;
+    };
+
+    HasManyRelation.prototype.empty = function() {
+      return this._ids.size() === 0;
+    };
+
+    HasManyRelation.prototype.loaded = function() {
+      var loaded;
+      loaded = true;
+      this._models.each(function(model, i) {
+        if (!(model instanceof Model)) {
+          return loaded = false;
+        }
+      });
+      return loaded;
+    };
+
+    HasManyRelation.prototype.serialize = function() {
+      var json;
+      json = [];
+      this._models.each(function(m) {
+        if (m instanceof Model) {
+          return json.push(m.id());
+        } else {
+          return json.push(m);
+        }
+      });
+      return json;
+    };
 
     return HasManyRelation;
 

@@ -10,9 +10,11 @@ Discrete.Collection = class Collection
 			# Complain if not array supplied array.
 			unless _.isArray values
 				throw new Error "Initial values for Collection must be either Array or Collection"
+		# Prepare container.
+		@_items = []
 		# Default.
 		values or= []
-		@_items = values
+		@addAll values
 
 	# Adds an element to the collection.
 	# Returns true if the element was added.
@@ -21,7 +23,20 @@ Discrete.Collection = class Collection
 		# Fire change event.
 		@trigger "change",
 			type: "add"
-			map: @
+			collection: @
+			value: obj
+		return true
+
+	# Adds all the supplied values.
+	# Returns true if any elements were added.
+	addAll: (obj...) ->
+		obj = _.flatten obj
+		for o in obj
+			@_items.push o
+		# Fire change event.
+		@trigger "change",
+			type: "add"
+			collection: @
 			value: obj
 		return true
 
@@ -35,10 +50,18 @@ Discrete.Collection = class Collection
 		# Fire change event.
 		@trigger "change",
 			type: "remove"
-			map: @
+			collection: @
 			oldValue: oldVal
 		# Return old value.
 		return true
+
+	# Removes everything in the collection.
+	removeAll: ->
+		@_items = []
+		# Fire change event.
+		@trigger "change",
+			type: "remove"
+			collection: @
 
 	# Returns the object at the specified index, or null if it doesn't exist.
 	get: (index) ->
@@ -53,6 +76,16 @@ Discrete.Collection = class Collection
 	# Returns the sizxe of the collection.
 	size: (obj) ->
 		return @_items.length
+
+	# Replaces all instances of one value with another.
+	# Returns the number of entries which were replaces.
+	replace: (oldObj, newObj) ->
+		replaced = 0
+		for o, i in @_items
+			if o is oldObj
+				@_items[i] = newObj
+				replaced++
+		return replaced
 
 	# Returns true if the collection is empty.
 	isEmpty: ->

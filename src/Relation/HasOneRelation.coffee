@@ -32,6 +32,8 @@ Relation.register "HasOne", class HasOneRelation extends Relation
 	model: ->
 		return @_model
 
+	get: -> @model()
+
 	# Returns true if this relation doesn't point to a foreign model.
 	empty: ->
 		return not @_id?
@@ -46,34 +48,36 @@ Relation.register "HasOne", class HasOneRelation extends Relation
 		return @id()
 
 	# Loads the model(s) through the supplied persistor.
-	load: (persistor, callback) ->
+	load: (persistor, done) ->
 		# Check if we have anything to load.
 		if @empty()
-			_.defer -> callback null, null
+			_.defer -> done null, null
 			return
 		# Check if we need to load.
 		if @loaded()
-			_.defer => callback null, @model()
+			_.defer => done null, @model()
 			return
 		# We need to load.
 		persistor.load @id(), (err, model) =>
 			if err
-				callback err, null
+				_.defer -> done err, null
 				return
 			@set model
+			_.defer -> done null, model
 
-	# Saves the model(s) through the supplied persistor.
-	save: (persistor, callback) ->
-		# Check if we are empty.
-		if @empty() or not @loaded()
-			callback null, @model()
-			return
-		# Save.
-		persistor.save @model(), (err, model) =>
-			if err
-				_.defer -> callback err, null
-				return
-			# Remember the saved model.
-			@set model
-			_.defer -> callback null, model
+#	# Saves the model(s) through the supplied persistor.
+#	# Note: it could be argued that this is not the responsibility of the relation ... @todo
+#	save: (persistor, callback) ->
+#		# Check if we are empty.
+#		if @empty() or not @loaded()
+#			callback null, @model()
+#			return
+#		# Save.
+#		persistor.save @model(), (err, model) =>
+#			if err
+#				_.defer -> callback err, null
+#				return
+#			# Remember the saved model.
+#			@set model
+#			_.defer -> callback null, model
 

@@ -64,6 +64,14 @@ describe "Collection", ->
 			i++
 		expect(i).toBe 3
 
+	it "should replace values", ->
+		collection = new Collection ["a", "b", "c", "b"]
+		expect(collection.replace "b", "x").toBe 2
+		expect(collection.get 0).toBe "a"
+		expect(collection.get 1).toBe "x"
+		expect(collection.get 2).toBe "c"
+		expect(collection.get 3).toBe "x"
+
 	describe "change events", ->
 		change = null
 		changeEvent = null
@@ -83,7 +91,7 @@ describe "Collection", ->
 		it "should trigger when removing an element", ->
 			collection.add val1
 			collection.remove val1
-			waitsFor (-> change.callCount is 2), "Change not triggered", 100
+			waitsFor (-> change.called), "Change not triggered", 100
 			runs ->
 				expect(change.callCount).toBe 2
 				expect(changeEvent.data.type).toBe "remove"

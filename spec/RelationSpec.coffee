@@ -18,11 +18,14 @@ describe "Relation", ->
 		expect(typeof relation).toBe "object"
 		expect(relation instanceof TestRelation).toBe true
 
-	it "should accept optional options when creating", ->
-		relation = Relation.create "Test", model:Model
-		expect(relation.model).toBe Model
+	it "should construct relations from objects", ->
+		relation = Relation.create
+			type: "Test"
+			model: Model
+		expect(relation instanceof TestRelation).toBe true
+		expect(relation.options.model).toBe Model
 
 	it "should complain if requested relation doesn't exist", ->
 		test = ->
-			Relation.get "No"
+			Relation.create "No"
 		expect(test).toThrow "Unknown relation type: \"No\""
