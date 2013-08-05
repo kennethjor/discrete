@@ -67,6 +67,13 @@ Discrete.Map = class Map
 		# Return old value.
 		return returnVal
 
+	# Returns all the keys in the Map.
+	keys: ->
+		keys = []
+		@each (key, val) ->
+			keys.push key
+		return keys
+
 	# Returns true if the key exists, false if not.
 	hasKey: (key) ->
 		return @_getIndexForKey(key) isnt false
