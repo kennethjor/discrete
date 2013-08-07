@@ -202,10 +202,23 @@
     };
 
     Model.prototype.toJSON = function() {
-      var json;
-      json = _.clone(this._values);
-      if (this._id != null) {
-        json.id = this._id;
+      var id, json, key, keys, _i, _len;
+      json = {};
+      keys = [];
+      if (_.isObject(this._values)) {
+        keys.push(_.keys(this._values));
+      }
+      if (_.isObject(this.fields)) {
+        keys.push(_.keys(this.fields));
+      }
+      keys = _.uniq(_.flatten(keys));
+      for (_i = 0, _len = keys.length; _i < _len; _i++) {
+        key = keys[_i];
+        json[key] = this.get(key);
+      }
+      id = this.id();
+      if (id != null) {
+        json.id = id;
       } else {
         delete json.id;
       }

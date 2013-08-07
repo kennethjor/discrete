@@ -153,10 +153,20 @@ Discrete.Model = class Model
 	# Serializes the model into a plain JSON object.
 	# This method does not serialize recursively, and extending it to do so is not recommended.
 	toJSON: ->
-		json = _.clone @_values
+		json = {}
+		# Create list of all known keys.
+		keys = []
+		keys.push _.keys(@_values) if _.isObject @_values
+		keys.push _.keys(@fields) if _.isObject @fields
+		keys = _.uniq _.flatten keys
+		# Get the value of all of them. ALL OF THEM I SAY!
+		for key in keys
+			json[key] = @get key
+
 		# Set ID if we have it.
-		if @_id?
-			json.id = @_id
+		id = @id()
+		if id?
+			json.id = id
 		# Otherwise make sure the serialized form does not contain an ID.
 		else
 			delete json.id
