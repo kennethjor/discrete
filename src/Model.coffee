@@ -87,7 +87,8 @@ Discrete.Model = class Model
 		obj = keyOrObj
 		if obj instanceof Model
 			@id obj.id()
-			obj = obj.toJSON()
+			#obj = obj.toJSON()
+			obj = obj._values
 		# Convert to object.
 		unless _.isObject obj
 			obj = {}
@@ -96,6 +97,8 @@ Discrete.Model = class Model
 		triggers = {}
 		# Iterate over object.
 		for own key, val of obj
+			# Import field.
+			field = @fields?[key]
 			oldVal = null
 			# Check relation.
 			relation = @getRelation key
@@ -105,6 +108,9 @@ Discrete.Model = class Model
 				oldVal = @_values[key]
 			# Add old value to triggers.
 			triggers[key] = @_values[key]
+			# Run the value through optional field handler.
+			if field?.change? and _.isFunction field.change
+				val = field.change.call @, val
 			# Set the value, checking relation.
 			if relation?
 				relation.set val

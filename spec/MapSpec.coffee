@@ -5,6 +5,7 @@ sinon = require "sinon"
 describe "Map", ->
 	map = null
 	key1 = key:1
+	key2 = key:2
 	val1 = val:1
 	val2 = val:2
 
@@ -52,6 +53,18 @@ describe "Map", ->
 			expect(val).toBe "val"+i
 			i++
 		expect(i).toBe 3
+
+	it "should clone", ->
+		map.put key1, val1
+		map.put key2, val2
+		map2 = map.clone()
+		expect(map2).not.toBe map
+		expect(map2.size()).toBe 2
+		expect(map2.get key1).toBe val1
+		expect(map2.get key2).toBe val2
+		map.put {key:3}, "foo"
+		expect(map.size()).toBe 3
+		expect(map2.size()).toBe 2
 
 	describe "change events", ->
 		change = null

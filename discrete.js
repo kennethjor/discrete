@@ -122,14 +122,14 @@
     };
 
     Model.prototype.set = function(keyOrObj, val) {
-      var key, obj, oldVal, relation, triggers;
+      var field, key, obj, oldVal, relation, triggers, _ref;
       if (!keyOrObj) {
         return this;
       }
       obj = keyOrObj;
       if (obj instanceof Model) {
         this.id(obj.id());
-        obj = obj.toJSON();
+        obj = obj._values;
       }
       if (!_.isObject(obj)) {
         obj = {};
@@ -139,6 +139,7 @@
       for (key in obj) {
         if (!__hasProp.call(obj, key)) continue;
         val = obj[key];
+        field = (_ref = this.fields) != null ? _ref[key] : void 0;
         oldVal = null;
         relation = this.getRelation(key);
         if (relation != null) {
@@ -147,6 +148,9 @@
           oldVal = this._values[key];
         }
         triggers[key] = this._values[key];
+        if (((field != null ? field.change : void 0) != null) && _.isFunction(field.change)) {
+          val = field.change.call(this, val);
+        }
         if (relation != null) {
           relation.set(val);
         } else {

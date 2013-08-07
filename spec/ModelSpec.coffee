@@ -68,6 +68,8 @@ describe "Model", ->
 			i++
 		expect(i).toBe 2
 
+	it "should execute optional change function on field changes"
+
 	describe "default values", ->
 		class Test extends Model
 			fields:
