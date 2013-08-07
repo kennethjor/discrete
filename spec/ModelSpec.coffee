@@ -240,6 +240,12 @@ describe "Model", ->
 			expect(foo instanceof HasOne).toBe true
 			expect(bar instanceof HasMany).toBe true
 
+		it "should set and return relation values", ->
+			m1 = new Model id:1
+			model.set foo:m1
+			expect(model.getRelation("foo").get()).toBe m1
+			expect(model.get "foo").toBe m1
+
 		it "should serialize to IDs", ->
 			model.getRelation("foo").set new Model id:1
 			model.getRelation("bar").add new Model id:1

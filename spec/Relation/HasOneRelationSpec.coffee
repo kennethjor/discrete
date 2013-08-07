@@ -20,6 +20,7 @@ describe "HasOneRelation", ->
 		expect(relation.empty()).toBe false
 		expect(relation.id()).toBe 42
 		expect(relation.model()).toBe null
+		expect(relation.get()).toBe null
 		# Strings
 		relation.set "id:42"
 		expect(relation.loaded()).toBe false
@@ -34,6 +35,7 @@ describe "HasOneRelation", ->
 		expect(relation.empty()).toBe false
 		expect(relation.id()).toBe 42
 		expect(relation.model()).toBe model
+		expect(relation.get()).toBe model
 
 	it "should rely on the ID of the model, if set", ->
 		model = new Model id:42
