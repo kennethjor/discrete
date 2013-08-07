@@ -70,6 +70,8 @@ describe "Model", ->
 
 	it "should execute optional change function on field changes"
 
+	it "should call the field change handler when changes happen"
+
 	describe "default values", ->
 		class Test extends Model
 			fields:
