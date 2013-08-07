@@ -4,8 +4,6 @@ Discrete = require "../../discrete"
 {Model, Collection, Set, RepoPersistor} = Discrete
 {HasMany} = Discrete.Relation
 
-TestPersistor = require "../TestPersistor"
-
 describe "HasManyRelation", ->
 	relation = null
 	collection = null
