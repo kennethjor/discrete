@@ -70,8 +70,6 @@ describe "Model", ->
 
 	it "should execute optional change function on field changes"
 
-	it "should call the field change handler when changes happen"
-
 	describe "default values", ->
 		class Test extends Model
 			fields:
@@ -249,6 +247,23 @@ describe "Model", ->
 			model.set foo:m1
 			expect(model.getRelation("foo").get()).toBe m1
 			expect(model.get "foo").toBe m1
+
+		it "should copy relations when setting model directly", ->
+			m1 = new Model id:1
+			m2 = new Model id:2
+			m3 = new Model id:3
+			model.getRelation("foo").set m1
+			model.getRelation("bar").add m2
+			model.getRelation("bar").add m3
+			expect(model.get("foo")).toBe m1
+			expect(model.get("bar").size()).toBe 2
+			# Set on new model.
+			model2 = new RelationalModel()
+			model2.set model
+			expect(model2.getRelation("foo").id()).toBe 1
+			expect(model2.getRelation("foo").model()).toBe m1
+			expect(model2.get("foo")).toBe m1
+			expect(model2.get("bar").size()).toBe 2
 
 		it "should convert to JSON", ->
 			m1 = new Model id:1

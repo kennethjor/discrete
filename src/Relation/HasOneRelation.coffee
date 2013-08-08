@@ -18,6 +18,7 @@ Relation.register "HasOne", class HasOneRelation extends Relation
 		else
 			@_id = modelOrId
 			# Reset model instance unless ID is the same.
+			#console.log "HasOne settinhg #{modelOrId} :: #{typeof @_model}"
 			if @_model isnt null and @_model.id() isnt modelOrId
 				@_model = null
 

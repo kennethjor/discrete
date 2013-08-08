@@ -86,10 +86,17 @@ Discrete.Model = class Model
 		# Convert a supplied model to JSON.
 		obj = keyOrObj
 		if obj instanceof Model
-			@id obj.id()
+			model = obj
+			@id model.id()
 			#obj = obj.toJSON()
-			#obj = obj._values
-			obj = obj.serialize()
+			obj = model._values
+			#obj = obj.serialize()
+			# Copy relations.
+			for own name, field of @fields
+				val = model.getRelation(name)?.get()
+				if val instanceof Collection
+					val = val.toJSON()
+				obj[name] = val
 		# Convert to object.
 		unless _.isObject obj
 			obj = {}

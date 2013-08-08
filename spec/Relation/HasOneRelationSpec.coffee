@@ -45,6 +45,13 @@ describe "HasOneRelation", ->
 		model.id 43
 		expect(relation.id()).toBe 43
 
+	it "should not lose the model if ID is being set", ->
+		model = new Model id:42
+		relation.set model
+		# Set new ID.
+		relation.id 42
+		expect(relation.model()).toBe model
+
 	it "should serialize to IDs, and preserve data type", ->
 		# Int.
 		relation.set new Model id:42
