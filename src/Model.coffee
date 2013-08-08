@@ -88,7 +88,8 @@ Discrete.Model = class Model
 		if obj instanceof Model
 			@id obj.id()
 			#obj = obj.toJSON()
-			obj = obj._values
+			#obj = obj._values
+			obj = obj.serialize()
 		# Convert to object.
 		unless _.isObject obj
 			obj = {}

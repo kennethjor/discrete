@@ -79,6 +79,10 @@ describe "HasManyRelation", ->
 
 	it "should support model type detection"
 
+	it "should not lose old values when setting the full list to IDs"
+		# relation.set ARRAY
+		# expect relation.get to be objects if the ID matched an existing one
+
 	describe "Sets", ->
 		set = null
 		beforeEach ->
