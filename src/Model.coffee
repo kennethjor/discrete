@@ -90,10 +90,14 @@ Discrete.Model = class Model
 			@id model.id()
 			#obj = obj.toJSON()
 			obj = model._values
+			console.log obj
 			#obj = obj.serialize()
 			# Copy relations.
 			for own name, field of @fields
-				val = model.getRelation(name)?.get()
+				foreignRelation = model.getRelation name
+				continue unless foreignRelation?
+				val = foreignRelation.get()
+				console.log "Processing #{name} as relation: ", val
 				if val instanceof Collection
 					val = val.toJSON()
 				obj[name] = val

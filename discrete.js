@@ -122,7 +122,7 @@
     };
 
     Model.prototype.set = function(keyOrObj, val) {
-      var field, key, model, name, obj, oldVal, relation, triggers, _ref, _ref1, _ref2;
+      var field, foreignRelation, key, model, name, obj, oldVal, relation, triggers, _ref, _ref1;
       if (!keyOrObj) {
         return this;
       }
@@ -131,11 +131,17 @@
         model = obj;
         this.id(model.id());
         obj = model._values;
+        console.log(obj);
         _ref = this.fields;
         for (name in _ref) {
           if (!__hasProp.call(_ref, name)) continue;
           field = _ref[name];
-          val = (_ref1 = model.getRelation(name)) != null ? _ref1.get() : void 0;
+          foreignRelation = model.getRelation(name);
+          if (foreignRelation == null) {
+            continue;
+          }
+          val = foreignRelation.get();
+          console.log("Processing " + name + " as relation: ", val);
           if (val instanceof Collection) {
             val = val.toJSON();
           }
@@ -150,7 +156,7 @@
       for (key in obj) {
         if (!__hasProp.call(obj, key)) continue;
         val = obj[key];
-        field = (_ref2 = this.fields) != null ? _ref2[key] : void 0;
+        field = (_ref1 = this.fields) != null ? _ref1[key] : void 0;
         oldVal = null;
         relation = this.getRelation(key);
         if (relation != null) {
