@@ -280,6 +280,8 @@ describe "Model", ->
 			expect(serial.bar[0]).toBe 1
 			expect(serial.bar[1]).toBe 2
 
+		it "should clone"
+
 		describe "persistence", ->
 			m1 = new Model id:1
 			m2 = new Model id:2
