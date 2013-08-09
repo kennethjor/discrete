@@ -188,6 +188,7 @@
         event = "change:" + key;
         _results.push(this.trigger(event, {
           model: this,
+          oldValue: oldVal,
           value: this.get(key)
         }));
       }

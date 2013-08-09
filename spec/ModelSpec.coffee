@@ -124,6 +124,9 @@ describe "Model", ->
 			runs ->
 				expect(change.callCount).toBe 1
 
+		it "should report the old value"
+		it "should issue change events even if nothing changed"
+
 	describe "toJSON", ->
 		it "should convert to a json object", ->
 			model = new Model
