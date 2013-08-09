@@ -131,7 +131,6 @@
         model = obj;
         this.id(model.id());
         obj = model._values;
-        console.log(obj);
         _ref = this.fields;
         for (name in _ref) {
           if (!__hasProp.call(_ref, name)) continue;
@@ -141,7 +140,6 @@
             continue;
           }
           val = foreignRelation.get();
-          console.log("Processing " + name + " as relation: ", val);
           if (val instanceof Collection) {
             val = val.toJSON();
           }
