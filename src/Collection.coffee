@@ -43,8 +43,14 @@ Discrete.Collection = class Collection
 	# Removes a element from the collection.
 	# Returns true if the collection was altered by the remove.
 	remove: (obj) ->
-		index = @_getIndex(obj)
+		index = @getIndexForValue(obj)
 		return false if index is false
+		return @removeByIndex index
+
+	# Removes an element from a specific index.
+	# Returns true if the collection was altered as a result of this call.
+	removeByIndex: (index) ->
+		return false unless 0 <= index < @_items.length
 		# Remove element.
 		oldVal = @_items.splice(index, 1)[0]
 		# Fire change event.
@@ -54,6 +60,7 @@ Discrete.Collection = class Collection
 			oldValue: oldVal
 		# Return old value.
 		return true
+
 
 	# Removes everything in the collection.
 	removeAll: ->
@@ -71,7 +78,7 @@ Discrete.Collection = class Collection
 
 	# Returns true of this collection contains the supplied element.
 	contains: (obj) ->
-		return @_getIndex(obj) isnt false
+		return @getIndexForValue(obj) isnt false
 
 	# Returns the sizxe of the collection.
 	size: (obj) ->
@@ -104,7 +111,7 @@ Discrete.Collection = class Collection
 		return json
 
 	# Returns the internal array index for the object, or false if it not found.
-	_getIndex: (obj) ->
+	getIndexForValue: (obj) ->
 		for entry, i in @_items
 			if entry is obj
 				return i

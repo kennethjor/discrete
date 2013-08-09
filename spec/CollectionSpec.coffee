@@ -33,6 +33,9 @@ describe "Collection", ->
 		expect(collection.get 1).toBe null
 		expect(collection.get -1).toBe null
 
+	it "should remove values by index"
+		# removeByIndex
+
 	it "should remove values", ->
 		# Remove non-existant value.
 		expect(collection.remove val1).toBe false

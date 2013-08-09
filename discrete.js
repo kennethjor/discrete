@@ -350,9 +350,17 @@
     };
 
     Collection.prototype.remove = function(obj) {
-      var index, oldVal;
-      index = this._getIndex(obj);
+      var index;
+      index = this.getIndexForValue(obj);
       if (index === false) {
+        return false;
+      }
+      return this.removeByIndex(index);
+    };
+
+    Collection.prototype.removeByIndex = function(index) {
+      var oldVal;
+      if (!((0 <= index && index < this._items.length))) {
         return false;
       }
       oldVal = this._items.splice(index, 1)[0];
@@ -380,7 +388,7 @@
     };
 
     Collection.prototype.contains = function(obj) {
-      return this._getIndex(obj) !== false;
+      return this.getIndexForValue(obj) !== false;
     };
 
     Collection.prototype.size = function(obj) {
@@ -424,7 +432,7 @@
       return json;
     };
 
-    Collection.prototype._getIndex = function(obj) {
+    Collection.prototype.getIndexForValue = function(obj) {
       var entry, i, _i, _len, _ref;
       _ref = this._items;
       for (i = _i = 0, _len = _ref.length; _i < _len; i = ++_i) {
@@ -933,17 +941,63 @@
       });
     };
 
-    HasManyRelation.prototype.set = function(modelsOrIds) {
-      var m, _i, _len, _results;
-      modelsOrIds = _.flatten([modelsOrIds]);
-      this._ids.removeAll();
-      this._models.removeAll();
-      _results = [];
-      for (_i = 0, _len = modelsOrIds.length; _i < _len; _i++) {
-        m = modelsOrIds[_i];
-        _results.push(this.add(m));
+    HasManyRelation.prototype.remove = function(modelOrId) {
+      var id, index, n;
+      if (!this.contains(modelOrId)) {
+        return false;
       }
-      return _results;
+      id = modelOrId instanceof Model ? modelOrId.id() : modelOrId;
+      n = 0;
+      while (this.contains(id)) {
+        index = this._ids.getIndexForValue(id);
+        this._ids.removeByIndex(index);
+        this._models.removeByIndex(index);
+        n++;
+      }
+      return n > 0;
+    };
+
+    HasManyRelation.prototype.set = function(modelsOrIds) {
+      var id, item, remaining, _i, _len,
+        _this = this;
+      if (modelsOrIds instanceof Collection) {
+        modelsOrIds = modelsOrIds.toJSON();
+      }
+      if (!_.isArray(modelsOrIds)) {
+        throw new Error("Setting the values of HasMany must be an array or collection");
+      }
+      remaining = new Collection(this._ids);
+      for (_i = 0, _len = modelsOrIds.length; _i < _len; _i++) {
+        item = modelsOrIds[_i];
+        if (this.contains(item)) {
+          if (item instanceof Model) {
+            this._models.replace(item.id(), item);
+          }
+        } else {
+          this.add(item);
+        }
+        id = item instanceof Model ? item.id() : item;
+        remaining.remove(id);
+      }
+      return remaining.each(function(item) {
+        return _this.remove(item);
+      });
+    };
+
+    HasManyRelation.prototype.contains = function(modelOrId) {
+      var found, id, model;
+      found = false;
+      if (modelOrId instanceof Model) {
+        model = modelOrId;
+        id = model.id();
+        found = this._models.contains(model);
+        if (!found && (id != null)) {
+          found = this._ids.contains(id);
+        }
+      } else {
+        found = this._ids.contains(modelOrId);
+      }
+      return found;
     };
 
     HasManyRelation.prototype.get = function() {

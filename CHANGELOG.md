@@ -5,7 +5,10 @@
 * *Feature:* Added classes for handling model relations rather than having a giant `Model` class.
 * *Feature:* Added `ModelRepo` and `RepoPersistor` for caching, testing, and other memory-only purposes.
 * *Feature:* Implemented a field definition on `Model` called `changed`, which will be called whenever a field is modified, the return value replacing the supplied value.
+* *Feature:* Implemented `contains()` and `removeByIndex()` on `Collection`.
+* *Feature:* Implemented `contains()`, `remove()` on `HasManyRelation`.
 * *Fix:* toJSON ignored all defined relations.
+* *Fix:* `HasManyRelation` will no longer lose existing `Model` instances when set with a list of IDs.
 
 ## 0.0.1 (2013-07-30)
 * Initial version after splitting modelling off from Antifreeze.

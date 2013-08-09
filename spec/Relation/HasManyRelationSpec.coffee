@@ -68,6 +68,7 @@ describe "HasManyRelation", ->
 		expect(collection.get 2).toBe model
 		expect(collection.get 3).toBe model
 
+
 	it "should mark itself as loaded if all IDs are overwritten with models", ->
 		relation.add 1
 		relation.add 2
@@ -79,9 +80,94 @@ describe "HasManyRelation", ->
 
 	it "should support model type detection"
 
-	it "should not lose old values when setting the full list to IDs"
-		# relation.set ARRAY
-		# expect relation.get to be objects if the ID matched an existing one
+	it "should detect what's contained in the relation", ->
+		m1 = new Model id:1
+		m2 = new Model id:2
+		m3 = new Model id:3
+		relation.add m1
+		relation.add 2
+		expect(relation.contains 1).toBe true
+		expect(relation.contains 2).toBe true
+		expect(relation.contains 3).toBe false
+		expect(relation.contains m1).toBe true
+		expect(relation.contains m2).toBe true
+		expect(relation.contains m3).toBe false
+
+	it "should remove elements", ->
+		# 1 :: ID - ID
+		relation.add 1
+		# 2 :: ID - Model
+		m2 = new Model id:2
+		relation.add 2
+		# 3 :: Model - ID
+		relation.add new Model id:3
+		# 4 :: Model - Model
+		m4 = new Model id:4
+		relation.add m4
+
+		expect(relation.contains 1).toBe true
+		expect(relation.contains 2).toBe true
+		expect(relation.contains 3).toBe true
+		expect(relation.contains 4).toBe true
+		expect(collection.size()).toBe 4
+		# Remove 1.
+		expect(relation.remove 1).toBe true
+		expect(relation.contains 1).toBe false
+		expect(collection.size()).toBe 3
+		# Remove 2.
+		expect(relation.remove m2).toBe true
+		expect(relation.contains 2).toBe false
+		expect(collection.size()).toBe 2
+		# Remove 3.
+		expect(relation.remove 3).toBe true
+		expect(relation.contains 3).toBe false
+		expect(collection.size()).toBe 1
+		# Remove 4.
+		expect(relation.remove m4).toBe true
+		expect(relation.contains 4).toBe false
+		expect(collection.size()).toBe 0
+
+	it "should effeciently handle setting multiple IDs", ->
+		# 1 :: ID <- ID = ID
+		relation.add 1
+		# 2 :: ID <- Model = Model
+		relation.add 2
+		m2 = new Model id:2
+		# 3 :: Model <- ID = Model
+		m3 = new Model id:3
+		relation.add m3
+		# 4 :: Model <- Model = Model
+		m4 = new Model id:4
+		relation.add m4
+		# 5 :: undefined <- ID = ID
+		# 6 :: undefined <- Model = Model
+		m6 = new Model id:6
+		# 7 :: ID <- undefined = null
+		relation.add 7
+		# 8 :: Model <- undefined = null
+		m8 = new Model id:8
+		relation.add m8
+		# Two of the values have yet to be defined.
+		expect(collection.size()).toBe 6
+		# Overwrite.
+		relation.set [
+			1 #1
+			m2 #2
+			3 #3
+			m4 #4
+			5 #5
+			m6 #6
+			#7
+			#8
+		]
+		# Check collection, this is the only way to ensure model instances have bee replaced correctly.
+		expect(collection.contains 1).toBe true
+		expect(collection.contains m2).toBe true
+		expect(collection.contains m3).toBe true
+		expect(collection.contains m4).toBe true
+		expect(collection.contains 5).toBe true
+		expect(collection.contains m6).toBe true
+		expect(collection.size()).toBe 6
 
 	describe "Sets", ->
 		set = null

@@ -89,17 +89,54 @@ Relation.register "HasMany", class HasManyRelation extends Relation
 #		# Prepare a set of models which need to be saved.
 #		savers = new Set()
 
-
+	# Removes an element from the relation.
+	remove: (modelOrId) ->
+		return false unless @contains modelOrId
+		id = if modelOrId instanceof Model then modelOrId.id() else modelOrId
+		n = 0
+		while @contains id
+			index = @_ids.getIndexForValue id
+			@_ids.removeByIndex index
+			@_models.removeByIndex index
+			n++
+		return n > 0
 
 	# Sets the relation.
 	# Note that this will wipe any existing relational data.
 	set: (modelsOrIds) ->
-		modelsOrIds = _.flatten [modelsOrIds]
-		# Crude! @todo
-		@_ids.removeAll()
-		@_models.removeAll()
-		for m in modelsOrIds
-			@add m
+		modelsOrIds = modelsOrIds.toJSON() if modelsOrIds instanceof Collection
+		throw new Error "Setting the values of HasMany must be an array or collection" unless _.isArray modelsOrIds
+		# Prepare a collection of all current IDs.
+		remaining = new Collection @_ids
+		# Copy a list of the existing elements.
+		for item in modelsOrIds
+			# If we have the item.
+			if @contains item
+				# If it's a model, replace all the internal ID elements.
+				if item instanceof Model
+					@_models.replace item.id(), item
+				# Otherwise ignore it.
+			# If we don't have it the item, add it.
+			else
+				@add item
+			# Remove processed item from the array of original IDs.
+			id = if item instanceof Model then item.id() else item
+			remaining.remove id
+		# Now remaining contains a list of originally present IDs which were not present in the supplied array. Remove them.
+		remaining.each (item) => @remove item
+
+	# Returns true of the Model or ID exists in the relation.
+	contains: (modelOrId) ->
+		found = false
+		if modelOrId instanceof Model
+			model = modelOrId
+			id = model.id()
+			found = @_models.contains model
+			if not found and id?
+				found = @_ids.contains id
+		else
+			found = @_ids.contains modelOrId
+		return found
 
 	# Returns the current collection of models or IDs, or both, depending on what's loaded.
 	get: ->
