@@ -141,7 +141,7 @@ Discrete.Model = class Model
 			@trigger event,
 				model: @
 #				key: key
-#				oldVal: val
+				oldValue: oldVal
 				value: @get key
 
 	# Returns a value on the object.
