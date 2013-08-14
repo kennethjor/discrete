@@ -4,6 +4,7 @@ Discrete = require "../discrete"
 {Model, Persistor, Collection, RepoPersistor} = Discrete
 {HasMany, HasOne} = Discrete.Relation
 
+# @todo merge change event tests in with normal tests.
 describe "Model", ->
 	model = null
 	beforeEach ->
@@ -24,6 +25,10 @@ describe "Model", ->
 		expect(model.get "byObject").toBe "also"
 		expect(model.get "multiple").toBe "awesome"
 		expect(model.get "values").toBe "stuff"
+
+	it "should get and set deep object values"
+	# model.set "first.second", val
+	# And fire change events.
 
 	it "should accept initial values", ->
 		model = new Model
@@ -181,7 +186,7 @@ describe "Model", ->
 			expect(clone.get "foo").toBe model.get "foo"
 			expect(clone.get "bar").toBe model.get "bar"
 
-	describe "persistor", ->
+	describe "persistance", ->
 		save = null
 		load = null
 		done = null
