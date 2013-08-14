@@ -288,7 +288,28 @@ describe "Model", ->
 			expect(serial.bar[0]).toBe 1
 			expect(serial.bar[1]).toBe 2
 
-		it "should clone"
+		it "should clone object references", ->
+			m1 = new Model id:1
+			m2 = new Model id:2
+			m3 = new Model id:3
+			model.set
+				foo: m1
+				bar: [m2, m3]
+			clone = model.clone()
+			expect(clone.get "foo").toBe m1
+			bar = clone.get("bar").toJSON()
+			expect(bar).toContain m2
+			expect(bar).toContain m3
+
+		it "should clone object IDs", ->
+			model.set
+				foo: 1
+				bar: [2, 3]
+			clone = model.clone()
+			expect(clone.get "foo").toBe 1
+			bar = clone.get("bar").toJSON()
+			expect(bar).toContain 2
+			expect(bar).toContain 3
 
 		describe "persistence", ->
 			m1 = new Model id:1
