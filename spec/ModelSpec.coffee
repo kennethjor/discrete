@@ -26,6 +26,29 @@ describe "Model", ->
 		expect(model.get "multiple").toBe "awesome"
 		expect(model.get "values").toBe "stuff"
 
+	# While this would be a nice feature, more thought needs to be put into it.
+	it "should support custom getters, setters, and cloners"
+	xit "should support custom getters and setters", ->
+		getter = sinon.spy -> return "foo getter"
+		setter = sinon.spy -> return "foo setter"
+		clone =  sinon.spy -> return "foo clone"
+		class CustomModel extends Model
+			fields:
+				foo:
+					getter: getter
+					setter: setter
+					clone: clone
+		model = new CustomModel
+		model.set foo: "test"
+		expect(model._values.foo).toBe "foo setter"
+		expect(model.get "foo").toBe "foo getter"
+		# Verify getter.
+		expect(getter.callCount).toBe 1
+		getCall = getter.getCall 0
+		expect(getCall.args[0])
+		# Verify setter.
+		expect(setter.callCount).toBe 1
+
 	it "should get and set deep object values"
 	# model.set "first.second", val
 	# And fire change events.
@@ -238,6 +261,8 @@ describe "Model", ->
 					relation: "HasOne"
 				bar:
 					relation: "HasMany"
+			clone: ->
+				super new RelationalModel
 
 		beforeEach ->
 			model = new RelationalModel id:99
@@ -306,10 +331,11 @@ describe "Model", ->
 				foo: 1
 				bar: [2, 3]
 			clone = model.clone()
-			expect(clone.get "foo").toBe 1
-			bar = clone.get("bar").toJSON()
-			expect(bar).toContain 2
-			expect(bar).toContain 3
+			cloneFoo = clone.getRelation "foo"
+			cloneBar = clone.getRelation "bar"
+			expect(cloneFoo.id()).toBe 1
+			expect(cloneBar.contains 2).toBe true
+			expect(cloneBar.contains 3).toBe true
 
 		describe "persistence", ->
 			m1 = new Model id:1

@@ -21,3 +21,7 @@ Discrete.Set = class Set extends Collection
 			collection: @
 			value: added
 		return added.length > 0
+
+	# Clones the set.
+	clone: (base = new Set) ->
+		return super base

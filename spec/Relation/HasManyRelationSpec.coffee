@@ -169,6 +169,44 @@ describe "HasManyRelation", ->
 		expect(collection.contains m6).toBe true
 		expect(collection.size()).toBe 6
 
+	describe "cloning", ->
+		m1 = new Model id:1
+		m2 = new Model id:2
+		m3 = new Model id:3
+
+		it "should handle models", ->
+			relation.add m1, m2, m3
+			clone = relation.clone()
+			expect(clone).not.toBe relation
+			expect(clone.contains(m1)).toBe true
+			expect(clone.contains(m2)).toBe true
+			expect(clone.contains(m3)).toBe true
+			# Remove from original, should not affect clone.
+			relation.remove m1
+			expect(clone.contains(m1)).toBe true
+
+		it "should handle IDs", ->
+			relation.add 1, 2, 3
+			clone = relation.clone()
+			expect(clone).not.toBe relation
+			expect(clone.contains(1)).toBe true
+			expect(clone.contains(2)).toBe true
+			expect(clone.contains(3)).toBe true
+			# Remove from original, should not affect clone.
+			relation.remove 1
+			expect(clone.contains(1)).toBe true
+
+		it "should handle a mix of IDs and Models", ->
+			relation.add 1, m2, 3
+			clone = relation.clone()
+			expect(clone).not.toBe relation
+			expect(clone.contains(m1)).toBe true
+			expect(clone.contains(2)).toBe true
+			expect(clone.contains(3)).toBe true
+			# Remove from original, should not affect clone.
+			relation.remove 1
+			expect(clone.contains(1)).toBe true
+
 	describe "Sets", ->
 		set = null
 		beforeEach ->

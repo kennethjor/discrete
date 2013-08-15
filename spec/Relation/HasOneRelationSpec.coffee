@@ -67,6 +67,31 @@ describe "HasOneRelation", ->
 		test = -> relation.set new Model
 		expect(test).toThrow "Invalid model type supplied"
 
+	describe "cloning", ->
+		m1 = new Model id:1
+
+		it "should handle a model", ->
+			relation.set m1
+			clone = relation.clone()
+			expect(clone).not.toBe relation
+			expect(clone.id()).toBe 1
+			expect(clone.model()).toBe m1
+			expect(clone.get()).toBe m1
+			# Modify from original, should not affect clone.
+			relation.set 2
+			expect(clone.get()).toBe m1
+
+		it "should handle an ID", ->
+			relation.set 1
+			clone = relation.clone()
+			expect(clone).not.toBe relation
+			expect(clone.id()).toBe 1
+			expect(clone.model()).toBe null
+			expect(clone.get()).toBe null
+			# Modify from original, should not affect clone.
+			relation.set 2
+			expect(clone.id()).toBe 1
+
 	describe "persistance", ->
 		persistor = null
 		load = null

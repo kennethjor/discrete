@@ -75,6 +75,15 @@ describe "Collection", ->
 		expect(collection.get 2).toBe "c"
 		expect(collection.get 3).toBe "x"
 
+	it "should clone", ->
+		collection.addAll val1, val2
+		clone = collection.clone()
+		expect(clone).not.toBe collection
+		expect(clone.size()).toBe 2
+		# Modify original, should not affect clone.
+		collection.add val3
+		expect(clone.size()).toBe 2
+
 	describe "change events", ->
 		change = null
 		changeEvent = null

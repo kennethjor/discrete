@@ -114,6 +114,14 @@
       return relation;
     };
 
+    Model.prototype.setRelation = function(name, relation) {
+      if (!(relation instanceof Relation)) {
+        throw new Error("Relation must be a Relation instance, " + (typeof relation) + " supplied");
+      }
+      this._relations[name] = relation;
+      return this;
+    };
+
     Model.prototype.id = function(id) {
       if (id != null) {
         this._id = id;
@@ -122,47 +130,52 @@
     };
 
     Model.prototype.set = function(keyOrObj, val) {
-      var field, foreignRelation, key, model, name, obj, oldVal, relation, triggers, _ref, _ref1;
+      var field, handled, key, model, obj, otherField, otherRelation, relation, thisField, thisRelation, triggers, _ref, _ref1, _ref2, _ref3;
       if (!keyOrObj) {
         return this;
       }
       obj = keyOrObj;
+      model = null;
+      triggers = {};
       if (obj instanceof Model) {
         model = obj;
+        obj = {};
         this.id(model.id());
-        obj = model._values;
-        _ref = this.fields;
-        for (name in _ref) {
-          if (!__hasProp.call(_ref, name)) continue;
-          field = _ref[name];
-          foreignRelation = model.getRelation(name);
-          if (foreignRelation == null) {
+        _ref = model.fields;
+        for (key in _ref) {
+          if (!__hasProp.call(_ref, key)) continue;
+          otherField = _ref[key];
+          thisField = (_ref1 = this.fields) != null ? _ref1[key] : void 0;
+          thisRelation = thisField != null ? thisField.relation : void 0;
+          otherRelation = model.getRelation(key);
+          if ((thisRelation != null) && (otherRelation != null)) {
+            triggers[key] = this.get(key);
+            this.setRelation(key, otherRelation.clone());
+          } else {
+            obj[key] = model.get(key);
+          }
+        }
+        handled = _.keys(triggers);
+        _ref2 = model._values;
+        for (key in _ref2) {
+          if (!__hasProp.call(_ref2, key)) continue;
+          val = _ref2[key];
+          if (_.contains(handled, key)) {
             continue;
           }
-          val = foreignRelation.get();
-          if (val instanceof Collection) {
-            val = val.toJSON();
-          }
-          obj[name] = val;
+          obj[key] = val;
         }
       }
       if (!_.isObject(obj)) {
         obj = {};
         obj[keyOrObj] = val;
       }
-      triggers = {};
       for (key in obj) {
         if (!__hasProp.call(obj, key)) continue;
         val = obj[key];
-        field = (_ref1 = this.fields) != null ? _ref1[key] : void 0;
-        oldVal = null;
+        field = (_ref3 = this.fields) != null ? _ref3[key] : void 0;
         relation = this.getRelation(key);
-        if (relation != null) {
-          oldVal = relation.get();
-        } else {
-          oldVal = this._values[key];
-        }
-        triggers[key] = this._values[key];
+        triggers[key] = this.get(key);
         if (((field != null ? field.change : void 0) != null) && _.isFunction(field.change)) {
           val = field.change.call(this, val);
         }
@@ -449,6 +462,14 @@
       return false;
     };
 
+    Collection.prototype.clone = function(base) {
+      if (base == null) {
+        base = new Collection;
+      }
+      base.addAll(this.toJSON());
+      return base;
+    };
+
     return Collection;
 
   })();
@@ -487,6 +508,13 @@
         value: added
       });
       return added.length > 0;
+    };
+
+    Set.prototype.clone = function(base) {
+      if (base == null) {
+        base = new Set;
+      }
+      return Set.__super__.clone.call(this, base);
     };
 
     return Set;
@@ -703,7 +731,7 @@
     };
 
     Relation.prototype.clone = function() {
-      throw new Error;
+      throw new Error("Clone not extended");
     };
 
     Relation.prototype.load = function(persistor, callback) {
@@ -807,6 +835,14 @@
 
     HasOneRelation.prototype.serialize = function() {
       return this.id();
+    };
+
+    HasOneRelation.prototype.clone = function(base) {
+      if (base == null) {
+        base = new HasOneRelation;
+      }
+      base.set(this.model() || this.id());
+      return base;
     };
 
     HasOneRelation.prototype.load = function(persistor, done) {
@@ -1035,6 +1071,15 @@
         }
       });
       return json;
+    };
+
+    HasManyRelation.prototype.clone = function(base) {
+      if (base == null) {
+        base = new HasManyRelation;
+      }
+      base._ids = this._ids.clone();
+      base._models = this._models.clone();
+      return base;
     };
 
     return HasManyRelation;

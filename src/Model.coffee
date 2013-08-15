@@ -8,14 +8,6 @@ Discrete.Model = class Model
 	# * `relation`: The relation specification. This can either be a string or a `Relation` object.
 	fields: null
 
-	# Default values to be assigned automatically.
-	# Any functions defined here will be executed and their return values will be used as the default.
-	# These functions are executed once per needed default value, and they take the current values object as their only argument.
-	#defaults: {}
-
-	# Defined relations.
-	#relations: {}
-
 	# The `Persistor` to use for this model.
 	# The value for this attribute should be a constructor method.
 	# For custom implementations override `getPersistor()`.
@@ -72,6 +64,13 @@ Discrete.Model = class Model
 
 		return relation
 
+	# Sets the current relation to a specific instance.
+	# *WARNING: Don't use this method unless you know exactly what you're doing.*
+	setRelation: (name, relation) ->
+		throw new Error "Relation must be a Relation instance, #{typeof relation} supplied" unless relation instanceof Relation
+		@_relations[name] = relation
+		return @
+
 	# ID getter/setter.
 	id: (id) ->
 		if id?
@@ -80,44 +79,53 @@ Discrete.Model = class Model
 
 	# Sets one or more values.
 	# Can be called with a key and value, or with an object.
-	# If a `Model` instance is supplied directly, the values will be copied over directly.
+	# If a `Model` instance is supplied directly, the values will be copied or cloned over directly.
 	set: (keyOrObj, val) ->
 		return @ unless keyOrObj
-		# Convert a supplied model to JSON.
 		obj = keyOrObj
+		model = null
+		# Prepare container to hold the old values for changed keys, which is used for triggering change events.
+		triggers = {}
+		# If we received a Model, we need to handle that specially.
 		if obj instanceof Model
 			model = obj
+			obj = {}
+			# Set ID.
 			@id model.id()
-			#obj = obj.toJSON()
-			obj = model._values
-			#obj = obj.serialize()
-			# Copy relations.
-			for own name, field of @fields
-				foreignRelation = model.getRelation name
-				continue unless foreignRelation?
-				val = foreignRelation.get()
-				if val instanceof Collection
-					val = val.toJSON()
-				obj[name] = val
-		# Convert to object.
+			# Iterate over all foreign fields.
+			for own key, otherField of model.fields
+				thisField = @fields?[key]
+				thisRelation = thisField?.relation # definition
+				otherRelation = model.getRelation key # instance
+				# If a relation exists on both.
+				if thisRelation? and otherRelation?
+					# Save old value.
+					triggers[key] = @get key
+					# Clone it.
+					@setRelation key, otherRelation.clone()
+				# If not, get the value in case it's not stored in _values.
+				else
+					obj[key] = model.get key
+			# Extract remaining values from other model.
+			handled = _.keys triggers
+			for own key, val of model._values
+				continue if _.contains handled, key
+				obj[key] = val
+
+		# Convert a single value to an object, so we always work from an object.
 		unless _.isObject obj
 			obj = {}
 			obj[keyOrObj] = val
-		# Prepare container to hold old values for changed keys
-		triggers = {}
+
+
 		# Iterate over object.
 		for own key, val of obj
 			# Import field.
 			field = @fields?[key]
-			oldVal = null
-			# Check relation.
+			# Get relation.
 			relation = @getRelation key
-			if relation?
-				oldVal = relation.get()
-			else
-				oldVal = @_values[key]
 			# Add old value to triggers.
-			triggers[key] = @_values[key]
+			triggers[key] = @get key
 			# Run the value through optional field handler.
 			if field?.change? and _.isFunction field.change
 				val = field.change.call @, val
@@ -226,19 +234,6 @@ Discrete.Model = class Model
 	save: (done) ->
 		@getPersistor().save @, done
 
-#		# Check relations for IDs. We can't save ID references unless all relations were previously saved.
-#		for own field, relation of @relations
-#			val = @get field
-#			continue if _.isEmpty val
-#			if relation.collection?
-#				val.each (entry) ->
-#					do (entry) -> _.defer -> done new Error "Entry in collection relation \"#{field}\" does not have an ID when saving model" unless entry.id()?
-#			else
-#				do (val) -> _.defer -> done new Error "Relation \"#{field}\" does not have an ID when saving model" unless val.id()?
-#		# Execute save.
-#		persistor.save @, done
-#		return @
-
 	# Laods all the defined relations.
 	loadRelations: (done) ->
 		persistor = @getPersistor()
@@ -256,70 +251,3 @@ Discrete.Model = class Model
 				relation.load persistor, done
 		# Array of fetcher functions create, execute them.
 		Async.parallel fetchers, done
-
-#	# Fetches all the defined relations.
-#	fetch: (done) ->
-#		persistor = @getPersistor()
-#		# Final results container.
-#		results = {}
-#		# Create a list of IDs which need to be fetched and the field they belong to.
-#		ids = []
-#		for own field, relation of @relations
-#			current = @get field
-#			# If relation is a collection.
-#			if relation.collection?
-#				# Check is a collection is already initialised/loaded.
-#				continue if current instanceof relation.collection
-#				# Initialise empty collection.
-#				results[field] = new relation.collection
-#				# If current is empty, take no further action.
-#				continue if _.isEmpty current
-#				# Current value must be an array.
-#				throw new Error "#{field} is not empty and is not an array" unless _.isArray current
-#				# Iterate over all values and add them to the list.
-#				for id in current
-#					ids.push [field, id]
-#			# Relation is not a collection, must be a model.
-#			else
-#				# Skip if loaded.
-#				continue if current instanceof relation.model
-#				# Check if ID and add it to the list.
-#				continue if _.isEmpty current
-#				ids.push [field, current]
-#		# Now we have a list of IDs to fetch, create an array of fetcher functions.
-#		fetchers = []
-#		for def in ids
-#			field = def[0]
-#			id = def[1]
-#			fetchers.push do (field, id) => (done) =>
-#				persistor.load id, (err, model) =>
-#					# Proxy errors.
-#					if err
-#						done err
-#						return
-#					# Pass result on.
-#					done null, [field, model]
-#		# Execute all the fetchers.
-#		Async.parallel fetchers, (err, fetchResults) =>
-#			# Proxy error.
-#			if err
-#				done err
-#				return
-#			# Initialise all collections.
-#			for field, relation in @relations
-#				if relation.collection?
-#					results[field] = new relation.collection unless results[field]?
-#			# We now have an array of a bunch of models, add them to the results object.
-#			for def in fetchResults
-#				field = def[0]
-#				model = def[1]
-#				relation = @relations[field]
-#				# If collection, add
-#				if relation.collection?
-#					results[field].add model
-#				# If model, set.
-#				else
-#					results[field] = model
-#			# All results collected, set it.
-#			@set results
-#			done null

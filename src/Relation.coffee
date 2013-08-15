@@ -33,7 +33,7 @@ Discrete.Relation = class Relation
 	# Clones the relation.
 	# This should only ever be used by `Model`.
 	clone: ->
-		throw new Error
+		throw new Error "Clone not extended"
 
 	# Loads the model(s) through the supplied persistor.
 	load: (persistor, callback) ->

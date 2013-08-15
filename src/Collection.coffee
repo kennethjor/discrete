@@ -116,3 +116,8 @@ Discrete.Collection = class Collection
 			if entry is obj
 				return i
 		return false
+
+	# Clones the collection.
+	clone: (base = new Collection) ->
+		base.addAll @toJSON()
+		return base

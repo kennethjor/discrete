@@ -48,6 +48,11 @@ Relation.register "HasOne", class HasOneRelation extends Relation
 	serialize: ->
 		return @id()
 
+	# Clones the relation.
+	clone: (base = new HasOneRelation) ->
+		base.set @model() or @id()
+		return base
+
 	# Loads the model(s) through the supplied persistor.
 	load: (persistor, done) ->
 		# Check if we have anything to load.

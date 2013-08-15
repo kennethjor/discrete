@@ -8,6 +8,7 @@ describe "Set", ->
 	change = null
 	val1 = val:1
 	val2 = val:2
+	val3 = val:3
 
 	beforeEach ->
 		set = new Set
@@ -35,3 +36,13 @@ describe "Set", ->
 		expect(set.get 0).toBe "a"
 		expect(set.get 1).toBe "x"
 		expect(set.get 2).toBe "c"
+
+	it "should clone", ->
+		set.addAll val1, val2
+		clone = set.clone()
+		expect(clone).not.toBe set
+		expect(clone instanceof Set).toBe true
+		expect(clone.size()).toBe 2
+		# Modify original, should not affect clone.
+		set.add val3
+		expect(clone.size()).toBe 2

@@ -163,3 +163,9 @@ Relation.register "HasMany", class HasManyRelation extends Relation
 			else
 				json.push m
 		return json
+
+	# Clones the relation.
+	clone: (base = new HasManyRelation) ->
+		base._ids = @_ids.clone()
+		base._models = @_models.clone()
+		return base
