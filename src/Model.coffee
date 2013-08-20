@@ -115,11 +115,9 @@ Discrete.Model = class Model
 				otherRelation = model.getRelation key # instance
 				# If a relation exists on both.
 				if thisRelation? and otherRelation?
-					# Change events are nwo handled by the relations themselves.
-					handled.push key
 					# Save old value.
-					#triggers[key] = undefined
-					#	oldValue: @get key
+					triggers[key] =
+						oldValue: @get key
 					# Clone it.
 					@setRelation key, otherRelation.clone()
 				# If not, get the value in case it's not stored in _values.
@@ -134,7 +132,6 @@ Discrete.Model = class Model
 			obj = {}
 			obj[keyOrObj] = val
 
-
 		# Iterate over object.
 		for own key, val of obj
 			# Import field.
@@ -142,8 +139,9 @@ Discrete.Model = class Model
 			# Get relation.
 			relation = @getRelation key
 			# Add scheduled trigger event.
-			triggers[key] =
-				oldValue: @get key
+			unless relation?
+				triggers[key] =
+					oldValue: @get key
 			# Run the value through optional field handler.
 			if field?.change? and _.isFunction field.change
 				val = field.change.call @, val
@@ -158,6 +156,7 @@ Discrete.Model = class Model
 
 	# Executes change events.
 	_triggerChanges: (keys) ->
+		return if _.isEmpty keys
 		# Fire main trigger.
 		@trigger "change",
 			model: @

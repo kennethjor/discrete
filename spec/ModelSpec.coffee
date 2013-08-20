@@ -353,15 +353,13 @@ describe "Model", ->
 			it "should fire when setting HasOne", ->
 				relation = model.getRelation "foo"
 				model.set foo: m1
+				#model.set foo: 1
 				waitsFor (->changeFoo.called), "Change never called", 100
 				runs ->
-					#expect(changeFoo.callCount).toBe 1 @todo
-					expect(changeFoo.callCount).toBeGreaterThan 0
-					#expect(change.callCount).toBe 1 @todo
-					expect(change.callCount).toBeGreaterThan 0
-					data = changeFoo.getCall(1).args[0].data
+					expect(changeFoo.callCount).toBe 1
+					expect(change.callCount).toBe 1
+					data = changeFoo.getCall(0).args[0].data
 					expect(data.model).toBe model
-					expect(data.relation).toBe relation
 					expect(data.value).toBe relation.get()
 
 			it "should fire when setting HasMany", ->
@@ -369,12 +367,10 @@ describe "Model", ->
 				model.set bar: [m1, m2]
 				waitsFor (->changeBar.called), "Change never called", 100
 				runs ->
-					#expect(changeBar.callCount).toBe 1 #@todo
-					expect(changeBar.callCount).toBeGreaterThan 0
-					#expect(change.callCount).toBe 1 @todo
-					expect(change.callCount).toBeGreaterThan 0
-					data = changeBar.getCall(1).args[0].data
-					expect(data.relation).toBe relation
+					expect(changeBar.callCount).toBe 1
+					expect(change.callCount).toBe 1
+					data = changeBar.getCall(0).args[0].data
+					expect(data.model).toBe model
 					expect(data.value).toBe relation.get()
 
 
@@ -387,7 +383,6 @@ describe "Model", ->
 					expect(change.callCount).toBe 1
 					data = changeBar.getCall(0).args[0].data
 					expect(data.model).toBe model
-					expect(data.relation).toBe relation
 					expect(data.value).toBe relation.get()
 
 		describe "persistence", ->

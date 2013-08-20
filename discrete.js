@@ -170,7 +170,9 @@
           thisRelation = thisField != null ? thisField.relation : void 0;
           otherRelation = model.getRelation(key);
           if ((thisRelation != null) && (otherRelation != null)) {
-            handled.push(key);
+            triggers[key] = {
+              oldValue: this.get(key)
+            };
             this.setRelation(key, otherRelation.clone());
           } else {
             obj[key] = model.get(key);
@@ -195,9 +197,11 @@
         val = obj[key];
         field = (_ref3 = this.fields) != null ? _ref3[key] : void 0;
         relation = this.getRelation(key);
-        triggers[key] = {
-          oldValue: this.get(key)
-        };
+        if (relation == null) {
+          triggers[key] = {
+            oldValue: this.get(key)
+          };
+        }
         if (((field != null ? field.change : void 0) != null) && _.isFunction(field.change)) {
           val = field.change.call(this, val);
         }
@@ -213,6 +217,9 @@
 
     Model.prototype._triggerChanges = function(keys) {
       var data, event, key, _results;
+      if (_.isEmpty(keys)) {
+        return;
+      }
       this.trigger("change", {
         model: this
       });
