@@ -152,8 +152,15 @@ describe "Model", ->
 			runs ->
 				expect(change.callCount).toBe 1
 
+		it "should not trigger on handlers assigned after the event", ->
+			newChange = sinon.spy()
+			model.set key:"val"
+			model.on "change", newChange
+			waitsFor (->change.called), "Change never called", 100
+			runs ->
+				expect(newChange.callCount).toBe 0
+
 		it "should report the old value"
-		it "should issue change events even if nothing changed"
 
 	describe "toJSON", ->
 		it "should convert to a json object", ->
@@ -372,7 +379,6 @@ describe "Model", ->
 					data = changeBar.getCall(0).args[0].data
 					expect(data.model).toBe model
 					expect(data.value).toBe relation.get()
-
 
 			it "should fire when adding to HasMany", ->
 				relation = model.getRelation "bar"
