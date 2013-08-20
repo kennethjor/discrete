@@ -157,6 +157,7 @@
       obj = keyOrObj;
       model = null;
       triggers = {};
+      handled = [];
       if (obj instanceof Model) {
         model = obj;
         obj = {};
@@ -169,13 +170,12 @@
           thisRelation = thisField != null ? thisField.relation : void 0;
           otherRelation = model.getRelation(key);
           if ((thisRelation != null) && (otherRelation != null)) {
-            triggers[key] = void 0;
+            handled.push(key);
             this.setRelation(key, otherRelation.clone());
           } else {
             obj[key] = model.get(key);
           }
         }
-        handled = _.keys(triggers);
         _ref2 = model._values;
         for (key in _ref2) {
           if (!__hasProp.call(_ref2, key)) continue;

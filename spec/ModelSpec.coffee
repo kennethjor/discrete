@@ -369,7 +369,7 @@ describe "Model", ->
 				model.set bar: [m1, m2]
 				waitsFor (->changeBar.called), "Change never called", 100
 				runs ->
-					#expect(changeBar.callCount).toBe 1 @todo
+					#expect(changeBar.callCount).toBe 1 #@todo
 					expect(changeBar.callCount).toBeGreaterThan 0
 					#expect(change.callCount).toBe 1 @todo
 					expect(change.callCount).toBeGreaterThan 0

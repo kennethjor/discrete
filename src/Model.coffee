@@ -101,6 +101,7 @@ Discrete.Model = class Model
 		model = null
 		# Prepare container to hold the old values for changed keys, which is used for triggering change events.
 		triggers = {}
+		handled = []
 		# If we received a Model, we need to handle that specially.
 		if obj instanceof Model
 			model = obj
@@ -114,17 +115,16 @@ Discrete.Model = class Model
 				otherRelation = model.getRelation key # instance
 				# If a relation exists on both.
 				if thisRelation? and otherRelation?
-					# change events are nwo handled by the relations themselves.
+					# Change events are nwo handled by the relations themselves.
+					handled.push key
 					# Save old value.
-					triggers[key] = undefined
+					#triggers[key] = undefined
 					#	oldValue: @get key
 					# Clone it.
 					@setRelation key, otherRelation.clone()
 				# If not, get the value in case it's not stored in _values.
 				else
 					obj[key] = model.get key
-			# Extract remaining values from other model.
-			handled = _.keys triggers
 			for own key, val of model._values
 				continue if _.contains handled, key
 				obj[key] = val
