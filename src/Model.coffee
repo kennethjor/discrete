@@ -24,6 +24,8 @@ Discrete.Model = class Model
 		# Prepare internal containers.
 		@_values = {}
 		@_relations = {}
+		# Contains subscription objects for relation change events.
+		@_relationChangeSubscriptions = {}
 		# Populate default values.
 		values = @_defaults values
 		# Set values.
@@ -59,8 +61,7 @@ Discrete.Model = class Model
 		return current if current?
 		# Construct relation.
 		relation = Relation.create relation
-		# Store it.
-		@_relations[name] = relation
+		@setRelation name, relation
 
 		return relation
 
@@ -68,6 +69,20 @@ Discrete.Model = class Model
 	# *WARNING: Don't use this method unless you know exactly what you're doing.*
 	setRelation: (name, relation) ->
 		throw new Error "Relation must be a Relation instance, #{typeof relation} supplied" unless relation instanceof Relation
+		# Ignore noops.
+		return @ if @_relations[name] is relation
+		# Clear old change subscription.
+		subs = @_relationChangeSubscriptions
+		sub = subs[name]
+		if sub
+			sub.unsubscribe()
+			delete subs[name]
+		# Bind change events.
+		subs[name] = relation.on "change", do (name) => (msg) =>
+			triggers = {}
+			triggers[name] = msg.data
+			@_triggerChanges triggers
+		# Store it.
 		@_relations[name] = relation
 		return @
 
@@ -99,8 +114,10 @@ Discrete.Model = class Model
 				otherRelation = model.getRelation key # instance
 				# If a relation exists on both.
 				if thisRelation? and otherRelation?
+					# change events are nwo handled by the relations themselves.
 					# Save old value.
-					triggers[key] = @get key
+					triggers[key] = undefined
+					#	oldValue: @get key
 					# Clone it.
 					@setRelation key, otherRelation.clone()
 				# If not, get the value in case it's not stored in _values.
@@ -124,8 +141,9 @@ Discrete.Model = class Model
 			field = @fields?[key]
 			# Get relation.
 			relation = @getRelation key
-			# Add old value to triggers.
-			triggers[key] = @get key
+			# Add scheduled trigger event.
+			triggers[key] =
+				oldValue: @get key
 			# Run the value through optional field handler.
 			if field?.change? and _.isFunction field.change
 				val = field.change.call @, val
@@ -144,13 +162,17 @@ Discrete.Model = class Model
 		@trigger "change",
 			model: @
 #			keys: _.keys keys
-		for own key, oldVal of keys
+		for own key, data of keys
 			event = "change:#{key}"
-			@trigger event,
-				model: @
-#				key: key
-				oldValue: oldVal
-				value: @get key
+			# Augment data.
+			data or= {}
+			data.model = @
+			data.value or= @get key
+			# Trigger.
+			@trigger event, data
+#				model: @
+#				oldValue: oldVal
+#				value: @get key
 
 	# Returns a value on the object.
 	get: (key) ->

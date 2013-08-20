@@ -7,9 +7,12 @@ Discrete = require "../../discrete"
 describe "HasManyRelation", ->
 	relation = null
 	collection = null
+	change = null
 	beforeEach ->
 		relation = new HasMany
 		collection = relation.get()
+		change = new sinon.spy()
+		relation.on "change", change
 
 	it "should be empty when created", ->
 		expect(relation.empty()).toBe true
@@ -206,6 +209,58 @@ describe "HasManyRelation", ->
 			# Remove from original, should not affect clone.
 			relation.remove 1
 			expect(clone.contains(1)).toBe true
+
+	describe "change events", ->
+		it "should fire when adding an ID", ->
+			relation.add 1
+			waitsFor (-> change.called), "Change never called", 100
+			runs ->
+				expect(change.callCount).toBe 1
+				data = change.getCall(0).args[0].data
+				expect(data.relation).toBe relation
+				expect(data.operation).toBe "add"
+				expect(data.models).toEqual [1]
+				expect(data.value).toBe collection
+
+		it "should fire when setting models", ->
+			m1 = new Model id:1
+			m2 = new Model id:2
+			relation.set [m1, m2]
+			waitsFor (-> change.called), "Change never called", 100
+			runs ->
+				expect(change.callCount).toBe 1
+				data = change.getCall(0).args[0].data
+				expect(data.relation).toBe relation
+				expect(data.operation).toBe "set"
+				expect(data.models).toEqual [m1, m2]
+				expect(data.value).toBe collection
+
+		it "should fire when adding models", ->
+			m1 = new Model id:1
+			m2 = new Model id:2
+			relation.add m1, m2
+			waitsFor (-> change.called), "Change never called", 100
+			runs ->
+				expect(change.callCount).toBe 1
+				data = change.getCall(0).args[0].data
+				expect(data.relation).toBe relation
+				expect(data.operation).toBe "add"
+				expect(data.models).toEqual [m1, m2]
+				expect(data.value).toBe collection
+
+		it "should fire when removing a model", ->
+			m1 = new Model id:1
+			m2 = new Model id:2
+			relation.set [m1, m2]
+			relation.remove m1
+			waitsFor (-> change.called), "Change never called", 100
+			runs ->
+				expect(change.callCount).toBe 2
+				data = change.getCall(1).args[0].data
+				expect(data.relation).toBe relation
+				expect(data.operation).toBe "remove"
+				expect(data.models).toEqual [m2]
+				expect(data.value).toBe collection
 
 	describe "Sets", ->
 		set = null

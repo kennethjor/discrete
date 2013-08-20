@@ -6,8 +6,11 @@ Discrete = require "../../discrete"
 
 describe "HasOneRelation", ->
 	relation = null
+	change = null
 	beforeEach ->
 		relation = new HasOne
+		change = sinon.spy()
+		relation.on "change", change
 
 	it "should be empty when created", ->
 		expect(relation.empty()).toBe true
@@ -66,6 +69,27 @@ describe "HasOneRelation", ->
 			model: TestModel
 		test = -> relation.set new Model
 		expect(test).toThrow "Invalid model type supplied"
+
+	it "should fire change events when setting an ID", ->
+		relation.set 1
+		waitsFor (-> change.called), "Change never called", 100
+		runs ->
+			expect(change.callCount).toBe 1
+			data = change.getCall(0).args[0].data
+			expect(data.relation).toBe relation
+			expect(data.id).toBe 1
+			expect(data.value).toBe null
+
+	it "should fire change events when setting a model", ->
+		m1 = new Model id:1
+		relation.set m1
+		waitsFor (-> change.called), "Change never called", 100
+		runs ->
+			expect(change.callCount).toBe 1
+			data = change.getCall(0).args[0].data
+			expect(data.relation).toBe relation
+			expect(data.id).toBe 1
+			expect(data.value).toBe m1
 
 	describe "cloning", ->
 		m1 = new Model id:1

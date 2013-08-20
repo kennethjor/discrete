@@ -9,13 +9,21 @@ Relation.register "HasMany", class HasManyRelation extends Relation
 		@_models = new @options.collection # note that this contains the IDs for models which are not loaded.
 
 	# Adds a model to the relation.
+	# Returns true if the relation was altered by the call.
 	add: (modelOrId...) ->
+		added = @_add modelOrId
+		if added
+			@_triggerChange operation: "add"
+		return added
+	# The real add method.
+	_add: (modelOrId...) ->
 		# Wrap if adding multiple.
 		modelOrId = _.flatten modelOrId
 		if modelOrId.length > 1
+			added = false
 			for m in modelOrId
-				@add m
-			return
+				if @_add m then added = true
+			return added
 		else
 			modelOrId = modelOrId[0]
 
@@ -90,7 +98,14 @@ Relation.register "HasMany", class HasManyRelation extends Relation
 #		savers = new Set()
 
 	# Removes an element from the relation.
+	# Returns true if the relation was altered by the call.
 	remove: (modelOrId) ->
+		removed = @_remove modelOrId
+		if removed
+			@_triggerChange operation: "remove"
+		return removed
+	# The real remove method.
+	_remove: (modelOrId) ->
 		return false unless @contains modelOrId
 		id = if modelOrId instanceof Model then modelOrId.id() else modelOrId
 		n = 0
@@ -102,12 +117,20 @@ Relation.register "HasMany", class HasManyRelation extends Relation
 		return n > 0
 
 	# Sets the relation.
-	# Note that this will wipe any existing relational data.
 	set: (modelsOrIds) ->
+		altered = @_set modelsOrIds
+		if altered
+			@_triggerChange operation: "set"
+		return altered
+	# The real set call.
+	_set: (modelsOrIds) ->
 		modelsOrIds = modelsOrIds.toJSON() if modelsOrIds instanceof Collection
 		throw new Error "Setting the values of HasMany must be an array or collection" unless _.isArray modelsOrIds
 		# Prepare a collection of all current IDs.
 		remaining = new Collection @_ids
+		# Suppress events temporarily. Defer should re-enable events again even if errors are thrown. @todo untested
+		@_suppressEvents = true
+		_.defer (=> @_suppressEvents = false)
 		# Copy a list of the existing elements.
 		for item in modelsOrIds
 			# If we have the item.
@@ -118,12 +141,13 @@ Relation.register "HasMany", class HasManyRelation extends Relation
 				# Otherwise ignore it.
 			# If we don't have it the item, add it.
 			else
-				@add item
+				@_add item
 			# Remove processed item from the array of original IDs.
 			id = if item instanceof Model then item.id() else item
 			remaining.remove id
 		# Now remaining contains a list of originally present IDs which were not present in the supplied array. Remove them.
-		remaining.each (item) => @remove item
+		remaining.each (item) => @_remove item
+		return true # @todo implement alteration detection
 
 	# Returns true of the Model or ID exists in the relation.
 	contains: (modelOrId) ->
@@ -169,3 +193,9 @@ Relation.register "HasMany", class HasManyRelation extends Relation
 		base._ids = @_ids.clone()
 		base._models = @_models.clone()
 		return base
+
+	# Utility method for triggering a change event.
+	_triggerChange: (data) ->
+		data.models = @_models.toJSON()
+		data.value = @get()
+		super

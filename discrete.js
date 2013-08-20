@@ -1,4 +1,4 @@
-/*! Discrete 0.1.0-dev.2 - MIT license */
+/*! Discrete 0.1.0-dev.3 - MIT license */
 (function() {
   var Async, Calamity, Collection, Discrete, HasManyRelation, HasOneRelation, Map, Model, ModelRepo, Persistor, Relation, RepoPersistor, Set, calamity, exports, object_toString, root, _, _ref, _ref1,
     __hasProp = {}.hasOwnProperty,
@@ -35,7 +35,7 @@
   }
 
   Discrete = {
-    version: "0.1.0-dev.2"
+    version: "0.1.0-dev.3"
   };
 
   if (typeof exports !== "undefined") {
@@ -63,6 +63,7 @@
       }
       this._values = {};
       this._relations = {};
+      this._relationChangeSubscriptions = {};
       values = this._defaults(values);
       this.set(values);
     }
@@ -110,14 +111,33 @@
         return current;
       }
       relation = Relation.create(relation);
-      this._relations[name] = relation;
+      this.setRelation(name, relation);
       return relation;
     };
 
     Model.prototype.setRelation = function(name, relation) {
+      var sub, subs,
+        _this = this;
       if (!(relation instanceof Relation)) {
         throw new Error("Relation must be a Relation instance, " + (typeof relation) + " supplied");
       }
+      if (this._relations[name] === relation) {
+        return this;
+      }
+      subs = this._relationChangeSubscriptions;
+      sub = subs[name];
+      if (sub) {
+        sub.unsubscribe();
+        delete subs[name];
+      }
+      subs[name] = relation.on("change", (function(name) {
+        return function(msg) {
+          var triggers;
+          triggers = {};
+          triggers[name] = msg.data;
+          return _this._triggerChanges(triggers);
+        };
+      })(name));
       this._relations[name] = relation;
       return this;
     };
@@ -149,7 +169,7 @@
           thisRelation = thisField != null ? thisField.relation : void 0;
           otherRelation = model.getRelation(key);
           if ((thisRelation != null) && (otherRelation != null)) {
-            triggers[key] = this.get(key);
+            triggers[key] = void 0;
             this.setRelation(key, otherRelation.clone());
           } else {
             obj[key] = model.get(key);
@@ -175,7 +195,9 @@
         val = obj[key];
         field = (_ref3 = this.fields) != null ? _ref3[key] : void 0;
         relation = this.getRelation(key);
-        triggers[key] = this.get(key);
+        triggers[key] = {
+          oldValue: this.get(key)
+        };
         if (((field != null ? field.change : void 0) != null) && _.isFunction(field.change)) {
           val = field.change.call(this, val);
         }
@@ -190,20 +212,19 @@
     };
 
     Model.prototype._triggerChanges = function(keys) {
-      var event, key, oldVal, _results;
+      var data, event, key, _results;
       this.trigger("change", {
         model: this
       });
       _results = [];
       for (key in keys) {
         if (!__hasProp.call(keys, key)) continue;
-        oldVal = keys[key];
+        data = keys[key];
         event = "change:" + key;
-        _results.push(this.trigger(event, {
-          model: this,
-          oldValue: oldVal,
-          value: this.get(key)
-        }));
+        data || (data = {});
+        data.model = this;
+        data.value || (data.value = this.get(key));
+        _results.push(this.trigger(event, data));
       }
       return _results;
     };
@@ -705,6 +726,8 @@
   })();
 
   Discrete.Relation = Relation = (function() {
+    Calamity.emitter(Relation.prototype);
+
     function Relation(options) {
       this.options = options != null ? options : {};
     }
@@ -740,6 +763,11 @@
 
     Relation.prototype.save = function(persistor, callback) {
       throw new Error("Save not extended");
+    };
+
+    Relation.prototype._triggerChange = function(data) {
+      data.relation = this;
+      return this.trigger("change", data);
     };
 
     /*
@@ -797,15 +825,26 @@
     }
 
     HasOneRelation.prototype.set = function(modelOrId) {
+      var id, model, oldId, oldModel;
+      oldId = this.id();
+      oldModel = this.model();
+      id = null;
+      model = null;
       if (modelOrId instanceof Model) {
         this.verifyType(modelOrId);
-        this._model = modelOrId;
-        return this._id = modelOrId.id();
+        this._model = model = modelOrId;
+        this._id = id = model.id();
       } else {
-        this._id = modelOrId;
+        this._id = id = modelOrId;
         if (this._model !== null && this._model.id() !== modelOrId) {
-          return this._model = null;
+          this._model = null;
         }
+      }
+      if (id !== oldId || model !== oldModel) {
+        return this._triggerChange({
+          id: id,
+          value: this.get()
+        });
       }
     };
 
@@ -889,15 +928,30 @@
     }
 
     HasManyRelation.prototype.add = function() {
+      var added, modelOrId;
+      modelOrId = 1 <= arguments.length ? __slice.call(arguments, 0) : [];
+      added = this._add(modelOrId);
+      if (added) {
+        this._triggerChange({
+          operation: "add"
+        });
+      }
+      return added;
+    };
+
+    HasManyRelation.prototype._add = function() {
       var added, id, m, model, modelOrId, _i, _len;
       modelOrId = 1 <= arguments.length ? __slice.call(arguments, 0) : [];
       modelOrId = _.flatten(modelOrId);
       if (modelOrId.length > 1) {
+        added = false;
         for (_i = 0, _len = modelOrId.length; _i < _len; _i++) {
           m = modelOrId[_i];
-          this.add(m);
+          if (this._add(m)) {
+            added = true;
+          }
         }
-        return;
+        return added;
       } else {
         modelOrId = modelOrId[0];
       }
@@ -983,6 +1037,17 @@
     };
 
     HasManyRelation.prototype.remove = function(modelOrId) {
+      var removed;
+      removed = this._remove(modelOrId);
+      if (removed) {
+        this._triggerChange({
+          operation: "remove"
+        });
+      }
+      return removed;
+    };
+
+    HasManyRelation.prototype._remove = function(modelOrId) {
       var id, index, n;
       if (!this.contains(modelOrId)) {
         return false;
@@ -999,6 +1064,17 @@
     };
 
     HasManyRelation.prototype.set = function(modelsOrIds) {
+      var altered;
+      altered = this._set(modelsOrIds);
+      if (altered) {
+        this._triggerChange({
+          operation: "set"
+        });
+      }
+      return altered;
+    };
+
+    HasManyRelation.prototype._set = function(modelsOrIds) {
       var id, item, remaining, _i, _len,
         _this = this;
       if (modelsOrIds instanceof Collection) {
@@ -1008,6 +1084,10 @@
         throw new Error("Setting the values of HasMany must be an array or collection");
       }
       remaining = new Collection(this._ids);
+      this._suppressEvents = true;
+      _.defer((function() {
+        return _this._suppressEvents = false;
+      }));
       for (_i = 0, _len = modelsOrIds.length; _i < _len; _i++) {
         item = modelsOrIds[_i];
         if (this.contains(item)) {
@@ -1015,14 +1095,15 @@
             this._models.replace(item.id(), item);
           }
         } else {
-          this.add(item);
+          this._add(item);
         }
         id = item instanceof Model ? item.id() : item;
         remaining.remove(id);
       }
-      return remaining.each(function(item) {
-        return _this.remove(item);
+      remaining.each(function(item) {
+        return _this._remove(item);
       });
+      return true;
     };
 
     HasManyRelation.prototype.contains = function(modelOrId) {
@@ -1080,6 +1161,12 @@
       base._ids = this._ids.clone();
       base._models = this._models.clone();
       return base;
+    };
+
+    HasManyRelation.prototype._triggerChange = function(data) {
+      data.models = this._models.toJSON();
+      data.value = this.get();
+      return HasManyRelation.__super__._triggerChange.apply(this, arguments);
     };
 
     return HasManyRelation;

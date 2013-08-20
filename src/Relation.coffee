@@ -4,6 +4,8 @@
 # leaving the model free from knowing how to handle individual relation types.
 # Also serves as a factory for relations.
 Discrete.Relation = class Relation
+	Calamity.emitter @prototype
+
 	constructor: (@options = {}) ->
 		# Valid options:
 		#
@@ -42,6 +44,11 @@ Discrete.Relation = class Relation
 	# Saves the model(s) through the supplied persistor.
 	save: (persistor, callback) ->
 		throw new Error "Save not extended"
+
+	# Utility method for triggering a change event.
+	_triggerChange: (data) ->
+		data.relation = @
+		@trigger "change", data
 
 	###
     STATIC METHODS.

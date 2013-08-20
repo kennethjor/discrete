@@ -4,7 +4,6 @@ Discrete = require "../discrete"
 {Model, Persistor, Collection, RepoPersistor} = Discrete
 {HasMany, HasOne} = Discrete.Relation
 
-# @todo merge change event tests in with normal tests.
 describe "Model", ->
 	model = null
 	beforeEach ->
@@ -117,6 +116,7 @@ describe "Model", ->
 			expect(model.get "foo").toBe "FOO"
 			expect(model.get "bar").toBe "other"
 
+	# @todo merge change event tests in with normal tests.
 	describe "change events", ->
 		change = null
 		changeEvent = null
@@ -254,6 +254,9 @@ describe "Model", ->
 				expect(doneCall.args[1]).toBe model
 
 	describe "relations", ->
+		change = null
+		changeFoo = null
+		changeBar = null
 		class RelationalModel extends Model
 			persistor: RepoPersistor
 			fields:
@@ -266,6 +269,12 @@ describe "Model", ->
 
 		beforeEach ->
 			model = new RelationalModel id:99
+			change = sinon.spy()
+			changeFoo = sinon.spy()
+			changeBar = sinon.spy()
+			model.on "change", change
+			model.on "change:foo", changeFoo
+			model.on "change:bar", changeBar
 
 		it "should return relation handlers", ->
 			foo = model.getRelation "foo"
@@ -336,6 +345,50 @@ describe "Model", ->
 			expect(cloneFoo.id()).toBe 1
 			expect(cloneBar.contains 2).toBe true
 			expect(cloneBar.contains 3).toBe true
+
+		describe "change events", ->
+			m1 = new Model id:1
+			m2 = new Model id:2
+
+			it "should fire when setting HasOne", ->
+				relation = model.getRelation "foo"
+				model.set foo: m1
+				waitsFor (->changeFoo.called), "Change never called", 100
+				runs ->
+					#expect(changeFoo.callCount).toBe 1 @todo
+					expect(changeFoo.callCount).toBeGreaterThan 0
+					#expect(change.callCount).toBe 1 @todo
+					expect(change.callCount).toBeGreaterThan 0
+					data = changeFoo.getCall(1).args[0].data
+					expect(data.model).toBe model
+					expect(data.relation).toBe relation
+					expect(data.value).toBe relation.get()
+
+			it "should fire when setting HasMany", ->
+				relation = model.getRelation "bar"
+				model.set bar: [m1, m2]
+				waitsFor (->changeBar.called), "Change never called", 100
+				runs ->
+					#expect(changeBar.callCount).toBe 1 @todo
+					expect(changeBar.callCount).toBeGreaterThan 0
+					#expect(change.callCount).toBe 1 @todo
+					expect(change.callCount).toBeGreaterThan 0
+					data = changeBar.getCall(1).args[0].data
+					expect(data.relation).toBe relation
+					expect(data.value).toBe relation.get()
+
+
+			it "should fire when adding to HasMany", ->
+				relation = model.getRelation "bar"
+				relation.add m1, m2
+				waitsFor (->changeBar.called), "Change never called", 100
+				runs ->
+					expect(changeBar.callCount).toBe 1
+					expect(change.callCount).toBe 1
+					data = changeBar.getCall(0).args[0].data
+					expect(data.model).toBe model
+					expect(data.relation).toBe relation
+					expect(data.value).toBe relation.get()
 
 		describe "persistence", ->
 			m1 = new Model id:1
