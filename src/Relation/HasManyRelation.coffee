@@ -128,9 +128,6 @@ Relation.register "HasMany", class HasManyRelation extends Relation
 		throw new Error "Setting the values of HasMany must be an array or collection" unless _.isArray modelsOrIds
 		# Prepare a collection of all current IDs.
 		remaining = new Collection @_ids
-		# Suppress events temporarily. Defer should re-enable events again even if errors are thrown. @todo untested
-		@_suppressEvents = true
-		_.defer (=> @_suppressEvents = false)
 		# Copy a list of the existing elements.
 		for item in modelsOrIds
 			# If we have the item.

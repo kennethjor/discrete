@@ -391,6 +391,16 @@ describe "Model", ->
 					expect(data.model).toBe model
 					expect(data.value).toBe relation.get()
 
+			it "should not trigger on handlers assigned after the event", ->
+				newChange = sinon.spy()
+				model.set foo: m2
+				model.set bar: [m1, m2]
+				model.on "change", newChange
+				waitsFor (->change.called), "Change never called", 100
+				runs ->
+					expect(change.callCount).toBe 2
+					expect(newChange.callCount).toBe 0
+
 		describe "persistence", ->
 			m1 = new Model id:1
 			m2 = new Model id:2

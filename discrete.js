@@ -1091,10 +1091,6 @@
         throw new Error("Setting the values of HasMany must be an array or collection");
       }
       remaining = new Collection(this._ids);
-      this._suppressEvents = true;
-      _.defer((function() {
-        return _this._suppressEvents = false;
-      }));
       for (_i = 0, _len = modelsOrIds.length; _i < _len; _i++) {
         item = modelsOrIds[_i];
         if (this.contains(item)) {

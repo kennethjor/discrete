@@ -262,6 +262,15 @@ describe "HasManyRelation", ->
 				expect(data.models).toEqual [m2]
 				expect(data.value).toBe collection
 
+		it "should not trigger on handlers assigned after the event", ->
+			newChange = sinon.spy()
+			relation.set [1]
+			relation.on "change", newChange
+			waitsFor (->change.called), "Change never called", 100
+			runs ->
+				expect(change.callCount).toBe 1
+				expect(newChange.callCount).toBe 0
+
 	describe "Sets", ->
 		set = null
 		beforeEach ->
