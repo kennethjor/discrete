@@ -16,16 +16,17 @@ Discrete.Model = class Model
 
 	# Constructor.
 	constructor: (values) ->
+		# Prepare internal containers.
+		@_values = {}
+		@_relations = {}
 		# ID.
 		@_id = null
 		if values?.id?
 			@id values.id
 			delete values.id
-		# Prepare internal containers.
-		@_values = {}
-		@_relations = {}
 		# Contains subscription objects for relation change events.
 		@_relationChangeSubscriptions = {}
+		@_relationEventCatcher = false
 		# Populate default values.
 		values = @_defaults values
 		# Set values.
@@ -79,9 +80,13 @@ Discrete.Model = class Model
 			delete subs[name]
 		# Bind change events.
 		subs[name] = relation.on "change", do (name) => (msg) =>
-			triggers = {}
-			triggers[name] = msg.data
-			@_triggerChanges triggers
+			relationEventCatcher = @_relationEventCatcher
+			if relationEventCatcher
+				relationEventCatcher name, msg.data
+			else
+				triggers = {}
+				triggers[name] = msg.data
+				@_triggerChanges triggers
 		# Store it.
 		@_relations[name] = relation
 		return @
@@ -147,7 +152,13 @@ Discrete.Model = class Model
 				val = field.change.call @, val
 			# Set the value, checking relation.
 			if relation?
-				relation.set val
+				# We need to catch the change event and prevent it from immediately executing.
+				# This is a bad way of doing it, but needed it fixed. @todo
+				try
+					@_relationEventCatcher = (field, data) => triggers[field] = data
+					relation.set val
+				finally
+					@_relationEventCatcher = false
 			else
 				@_values[key] = val
 		# Trigger change events.

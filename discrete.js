@@ -56,14 +56,15 @@
     Model.prototype.persistor = null;
 
     function Model(values) {
+      this._values = {};
+      this._relations = {};
       this._id = null;
       if ((values != null ? values.id : void 0) != null) {
         this.id(values.id);
         delete values.id;
       }
-      this._values = {};
-      this._relations = {};
       this._relationChangeSubscriptions = {};
+      this._relationEventCatcher = false;
       values = this._defaults(values);
       this.set(values);
     }
@@ -132,10 +133,15 @@
       }
       subs[name] = relation.on("change", (function(name) {
         return function(msg) {
-          var triggers;
-          triggers = {};
-          triggers[name] = msg.data;
-          return _this._triggerChanges(triggers);
+          var relationEventCatcher, triggers;
+          relationEventCatcher = _this._relationEventCatcher;
+          if (relationEventCatcher) {
+            return relationEventCatcher(name, msg.data);
+          } else {
+            triggers = {};
+            triggers[name] = msg.data;
+            return _this._triggerChanges(triggers);
+          }
         };
       })(name));
       this._relations[name] = relation;
@@ -150,7 +156,8 @@
     };
 
     Model.prototype.set = function(keyOrObj, val) {
-      var field, handled, key, model, obj, otherField, otherRelation, relation, thisField, thisRelation, triggers, _ref, _ref1, _ref2, _ref3;
+      var field, handled, key, model, obj, otherField, otherRelation, relation, thisField, thisRelation, triggers, _ref, _ref1, _ref2, _ref3,
+        _this = this;
       if (!keyOrObj) {
         return this;
       }
@@ -206,7 +213,14 @@
           val = field.change.call(this, val);
         }
         if (relation != null) {
-          relation.set(val);
+          try {
+            this._relationEventCatcher = function(field, data) {
+              return triggers[field] = data;
+            };
+            relation.set(val);
+          } finally {
+            this._relationEventCatcher = false;
+          }
         } else {
           this._values[key] = val;
         }

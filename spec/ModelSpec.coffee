@@ -401,6 +401,27 @@ describe "Model", ->
 					expect(change.callCount).toBe 2
 					expect(newChange.callCount).toBe 0
 
+			it "should only fire a single change event and value change events in the right order", ->
+				changeQwe = sinon.spy()
+				finish = sinon.spy()
+				model.on "change:qwe", changeQwe
+				model.set
+					foo: new Model id:1
+					bar: [
+						new Model id:2
+						new Model id:3
+					]
+					qwe: "string"
+				waitsFor (-> change.called), "Change never called", 100
+				runs ->
+					expect(change.callCount).toBe 1
+					expect(changeFoo.callCount).toBe 1
+					expect(changeBar.callCount).toBe 1
+					expect(changeQwe.callCount).toBe 1
+					expect(change.calledBefore changeFoo).toBe true
+					expect(change.calledBefore changeBar).toBe true
+					expect(change.calledBefore changeQwe).toBe true
+
 		describe "persistence", ->
 			m1 = new Model id:1
 			m2 = new Model id:2
