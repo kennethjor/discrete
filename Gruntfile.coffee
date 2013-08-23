@@ -10,6 +10,7 @@ files = [
 	"src/Relation/HasManyRelation.coffee"
 	"src/ModelRepo.coffee"
 	"src/RepoPersistor.coffee"
+	"src/Loader.coffee"
 ]
 
 module.exports = (grunt) ->
