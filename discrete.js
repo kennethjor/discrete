@@ -362,6 +362,20 @@
       return Async.parallel(fetchers, done);
     };
 
+    Model.prototype.relationsLoaded = function() {
+      var field, name, relation, _ref;
+      _ref = this.fields;
+      for (name in _ref) {
+        if (!__hasProp.call(_ref, name)) continue;
+        field = _ref[name];
+        relation = this.getRelation(name);
+        if (!relation.loaded()) {
+          return false;
+        }
+      }
+      return true;
+    };
+
     return Model;
 
   })();
@@ -1108,6 +1122,9 @@
     HasManyRelation.prototype._set = function(modelsOrIds) {
       var id, item, remaining, _i, _len,
         _this = this;
+      if (modelsOrIds === null) {
+        modelsOrIds = [];
+      }
       if (modelsOrIds instanceof Collection) {
         modelsOrIds = modelsOrIds.toJSON();
       }

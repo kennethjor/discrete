@@ -291,6 +291,36 @@ describe "Model", ->
 			expect(foo instanceof HasOne).toBe true
 			expect(bar instanceof HasMany).toBe true
 
+		it "should report when relations are loaded", ->
+			model = new RelationalModel
+			expect(model.relationsLoaded()).toBe true
+			model = new RelationalModel
+				foo: 1
+				bar: [2, 3]
+			expect(model.relationsLoaded()).toBe false
+			model = new RelationalModel
+				foo: new Model id:1
+				bar: null
+			expect(model.relationsLoaded()).toBe true
+			model = new RelationalModel
+				foo: null
+				bar: [
+					new Model id:1
+					new Model id:2
+				]
+			expect(model.relationsLoaded()).toBe true
+			model = new RelationalModel
+				foo: new Model id:1
+				bar: [1]
+			expect(model.relationsLoaded()).toBe false
+			model = new RelationalModel
+				foo: 1
+				bar: [
+					new Model id:1
+					new Model id:2
+				]
+			expect(model.relationsLoaded()).toBe false
+
 		it "should set and return relation values", ->
 			m1 = new Model id:1
 			model.set foo:m1

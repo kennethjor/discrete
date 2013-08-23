@@ -124,6 +124,7 @@ Relation.register "HasMany", class HasManyRelation extends Relation
 		return altered
 	# The real set call.
 	_set: (modelsOrIds) ->
+		modelsOrIds = [] if modelsOrIds is null
 		modelsOrIds = modelsOrIds.toJSON() if modelsOrIds instanceof Collection
 		throw new Error "Setting the values of HasMany must be an array or collection" unless _.isArray modelsOrIds
 		# Prepare a collection of all current IDs.

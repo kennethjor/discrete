@@ -283,3 +283,10 @@ Discrete.Model = class Model
 				relation.load persistor, done
 		# Array of fetcher functions create, execute them.
 		Async.parallel fetchers, done
+
+	# Returns true if all the relations are loaded.
+	relationsLoaded: ->
+		for own name, field of @fields
+			relation = @getRelation name
+			return false unless relation.loaded()
+		return true
