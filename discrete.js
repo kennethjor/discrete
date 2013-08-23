@@ -1,6 +1,6 @@
 /*! Discrete 0.1.0-dev.3 - MIT license */
 (function() {
-  var Async, Calamity, Collection, Discrete, HasManyRelation, HasOneRelation, Map, Model, ModelRepo, Persistor, Relation, RepoPersistor, Set, calamity, exports, object_toString, root, _, _ref, _ref1,
+  var Async, Calamity, Collection, Discrete, HasManyRelation, HasOneRelation, Loader, Map, Model, ModelRepo, Persistor, Relation, RepoPersistor, Set, calamity, exports, object_toString, root, _, _ref, _ref1,
     __hasProp = {}.hasOwnProperty,
     __slice = [].slice,
     __extends = function(child, parent) { for (var key in parent) { if (__hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor(); child.__super__ = parent.prototype; return child; };
@@ -1329,5 +1329,132 @@
     return RepoPersistor;
 
   })(Persistor);
+
+  Discrete.Loader = Loader = (function() {
+    function Loader(options) {
+      this.persistor = options.persistor;
+      this.concurrency = options.concurrency || 3;
+      this._models = {};
+      this._poll = null;
+      this.running = false;
+      this.completed = false;
+    }
+
+    Loader.prototype.getPersistor = function() {
+      var persistor;
+      persistor = this.persistor;
+      if (!persistor) {
+        throw new Error("Persistor not set");
+      }
+      if (persistor instanceof Persistor) {
+        return persistor;
+      }
+      return this.persistor = new persistor();
+    };
+
+    Loader.prototype.add = function(name, model) {
+      if (this.completed) {
+        throw new Error("Models cannot be added to a completed Loader");
+      }
+      if (name instanceof Model) {
+        model = name;
+        name = model.id();
+      } else if (!(name instanceof Model) && (model == null)) {
+        model = name;
+      }
+      this._models[name] = model;
+      if (this._queue) {
+        this._queue.push({
+          name: name,
+          model: model
+        });
+      }
+      return this;
+    };
+
+    Loader.prototype.get = function(name) {
+      return this._models[name];
+    };
+
+    Loader.prototype.getAll = function() {
+      return this._models;
+    };
+
+    Loader.prototype.poll = function(func) {
+      if (!_.isFunction(func)) {
+        throw new Error("Poll must be a function");
+      }
+      return this._poll = func;
+    };
+
+    Loader.prototype.load = function(done) {
+      var model, name, queue, worker, _ref2, _results,
+        _this = this;
+      this.running = true;
+      worker = function(task, done) {
+        var handlers;
+        handlers = [];
+        handlers.push(function(done) {
+          if (task.model instanceof Model) {
+            return done(null, task.model);
+          } else {
+            return _this.getPersistor().load(task.model, function(err, model) {
+              if (err) {
+                done(err);
+                return;
+              }
+              _this._models[task.name] = model;
+              return done(null, model);
+            });
+          }
+        });
+        handlers.push(function(model, done) {
+          if (model.relationsLoaded()) {
+            return done(null, model);
+          } else {
+            return model.loadRelations(function(err) {
+              if (err) {
+                done(err);
+                return;
+              }
+              return done(null, model);
+            });
+          }
+        });
+        handlers.push(function(model, done) {
+          if (_.isFunction(_this._poll)) {
+            _this._poll(_this, task.name, model);
+          }
+          return done();
+        });
+        return Async.waterfall(handlers, function(err) {
+          if (err) {
+            throw err;
+          }
+          return done();
+        });
+      };
+      this._queue = queue = Async.queue(worker, this.concurrency);
+      queue.drain = function() {
+        _this.running = false;
+        _this.completed = true;
+        return done(_this);
+      };
+      _ref2 = this._models;
+      _results = [];
+      for (name in _ref2) {
+        if (!__hasProp.call(_ref2, name)) continue;
+        model = _ref2[name];
+        _results.push(queue.push({
+          name: name,
+          model: model
+        }));
+      }
+      return _results;
+    };
+
+    return Loader;
+
+  })();
 
 }).call(this);

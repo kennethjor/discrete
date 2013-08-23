@@ -31,9 +31,11 @@ describe "Loader", ->
 		done = sinon.spy()
 		loader = new Loader
 			persistor: new RepoPersistor
+		loader.poll poll
 
 	it "should accept models and remember them", ->
 		# No custom index and id.
+		expect(loader.add "id:0").toBe loader
 		expect(loader.add "id:0").toBe loader
 		expect(loader.get "id:0").toBe "id:0"
 		# With custom index and id.
@@ -42,31 +44,41 @@ describe "Loader", ->
 		# No custom index and model.
 		expect(loader.add m1).toBe loader
 		expect(loader.get "id:111").toBe m1
-		expect(loader.get "id:222").toBe null
+		expect(loader.get "id:222").toBeUndefined()
 		# With custom index and model.
 		expect(loader.add "test", m2).toBe loader
 		expect(loader.get "test").toBe m2
-		expect(loader.get "id:222").toBe null
+		expect(loader.get "id:222").toBeUndefined()
 		# Return all.
 		models = loader.getAll()
 		expect(models["id:0"]).toBe "id:0"
 		expect(models.foo).toBe "id:1"
-		expect(models.id111).toBe m1
+		expect(models["id:111"]).toBe m1
 		expect(models.test).toBe m2
 
-	it "should load IDs", ->
-		loader
-			.add "id:111"
-			.load done
-
-	it "should load models, polling for more", ->
-		expect(loader.add m1).toBe loader
-		expect(loader.load done).toBe loader
+	it "should load IDs, load relations, and poll on completion", ->
+		loader.add "m1", "id:111"
+		loader.poll poll = sinon.spy (loader, name, model) ->
+			if name is "m1"
+				loader.add "m2", model.get "forward"
+		loader.load done
 		waitsFor (-> done.called), "Done never called", 100
 		runs ->
+			# Done.
 			expect(done.callCount).toBe 1
-
-	it "should allow more models to be loaded", ->
-		loader.add m1
-
-
+			expect(done.args[0][0]).toBe loader
+			# Poll.
+			expect(poll.callCount).toBe 2
+			expect(poll.args[0][0]).toBe loader
+			expect(poll.args[0][1]).toBe "m1"
+			expect(poll.args[0][2]).toBe m1
+			expect(poll.args[1][0]).toBe loader
+			expect(poll.args[1][1]).toBe "m2"
+			expect(poll.args[1][2]).toBe m2
+			# Check relations.
+			expect(m1.relationsLoaded()).toBe true
+			expect(m2.relationsLoaded()).toBe true
+			expect(m3.relationsLoaded()).toBe false # m3 was never explicitly added, and thus not loaded.
+			# Saved.
+			expect(loader.get "m1").toBe m1
+			expect(loader.get "m2").toBe m2
