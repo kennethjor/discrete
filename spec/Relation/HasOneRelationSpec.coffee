@@ -91,7 +91,7 @@ describe "HasOneRelation", ->
 			expect(data.id).toBe 1
 			expect(data.value).toBe m1
 
-	it "should not trigger on handlers assigned after the event", ->
+	it "should not trigger change on handlers assigned after the event", ->
 		newChange = sinon.spy()
 		relation.set 1
 		relation.on "change", newChange
@@ -99,6 +99,19 @@ describe "HasOneRelation", ->
 		runs ->
 			expect(change.callCount).toBe 1
 			expect(newChange.callCount).toBe 0
+
+	it "should not trigger a change when an ID is assigned, but model is already present", ->
+		m1 = new Model id:1
+		relation.set m1
+		relation.set 1
+		waitsFor (-> change.called), "Change never called", 100
+		runs ->
+			#console.log change.args[0][0].data
+			#console.log change.args[1][0].data
+			expect(change.callCount).toBe 1
+			call = change.getCall 0
+			expect(call.args[0].data.oldValue).toBe null
+			expect(call.args[0].data.value).toBe m1
 
 
 

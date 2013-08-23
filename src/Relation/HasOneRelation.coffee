@@ -13,23 +13,30 @@ Relation.register "HasOne", class HasOneRelation extends Relation
 		oldModel = @model()
 		id = null
 		model = null
+		change = false
 		# Set model.
 		if modelOrId instanceof Model
 			@verifyType modelOrId
 			@_model = model = modelOrId
 			@_id = id = model.id()
+			# A different model instance should force a change.
+			change = true if model isnt oldModel
 		# Set ID.
 		else
 			@_id = id = modelOrId
-			# Reset model instance unless ID is the same.
-			#console.log "HasOne settinhg #{modelOrId} :: #{typeof @_model}"
-			if @_model isnt null and @_model.id() isnt modelOrId
+			# Reset model instance if we received a different ID.
+			if oldModel? and id isnt oldId
 				@_model = null
+				change = true
+		# If the ID changes, we always have a change.
+		change = true if id isnt oldId
 		# Detect change.
-		if id isnt oldId or model isnt oldModel
+		if change
 			@_triggerChange
 				id: id
+				oldId: oldId
 				value: @get()
+				oldValue: oldModel
 
 	# Returns the ID of the foreign model.
 	id: ->

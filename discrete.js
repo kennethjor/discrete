@@ -846,25 +846,35 @@
     }
 
     HasOneRelation.prototype.set = function(modelOrId) {
-      var id, model, oldId, oldModel;
+      var change, id, model, oldId, oldModel;
       oldId = this.id();
       oldModel = this.model();
       id = null;
       model = null;
+      change = false;
       if (modelOrId instanceof Model) {
         this.verifyType(modelOrId);
         this._model = model = modelOrId;
         this._id = id = model.id();
+        if (model !== oldModel) {
+          change = true;
+        }
       } else {
         this._id = id = modelOrId;
-        if (this._model !== null && this._model.id() !== modelOrId) {
+        if ((oldModel != null) && id !== oldId) {
           this._model = null;
+          change = true;
         }
       }
-      if (id !== oldId || model !== oldModel) {
+      if (id !== oldId) {
+        change = true;
+      }
+      if (change) {
         return this._triggerChange({
           id: id,
-          value: this.get()
+          oldId: oldId,
+          value: this.get(),
+          oldValue: oldModel
         });
       }
     };

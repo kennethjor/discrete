@@ -271,6 +271,8 @@ describe "HasManyRelation", ->
 				expect(change.callCount).toBe 1
 				expect(newChange.callCount).toBe 0
 
+		it "should not trigger an IDs are assigned, but the models are already present"
+
 	describe "Sets", ->
 		set = null
 		beforeEach ->
