@@ -19,7 +19,7 @@ Discrete.Loader = class Loader
 
 	# Adds a model to the loader.
 	add: (name, model) ->
-		throw new Error "Models cannot be added to a completed Loader" if @completed
+		#throw new Error "Models cannot be added to a completed Loader" if @completed
 		return @ if !name?
 		# Arrays.
 		if _.isArray name

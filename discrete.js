@@ -1355,9 +1355,6 @@
     Loader.prototype.add = function(name, model) {
       var i, key, val, _i, _len,
         _this = this;
-      if (this.completed) {
-        throw new Error("Models cannot be added to a completed Loader");
-      }
       if (name == null) {
         return this;
       }
