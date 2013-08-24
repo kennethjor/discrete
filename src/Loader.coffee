@@ -113,7 +113,7 @@ Discrete.Loader = class Loader
 		queue.drain = =>
 			@running = false
 			@completed = true
-			done @
+			done null, @ # @todo catch errors
 		# Populate queue with initial tasks.
 		for own name, model of @_models
 			queue.push

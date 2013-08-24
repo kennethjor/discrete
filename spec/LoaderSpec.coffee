@@ -95,7 +95,8 @@ describe "Loader", ->
 		runs ->
 			# Done.
 			expect(done.callCount).toBe 1
-			expect(done.args[0][0]).toBe loader
+			expect(done.args[0][0]).toBe null
+			expect(done.args[0][1]).toBe loader
 			# Poll.
 			expect(poll.callCount).toBe 2
 			expect(poll.args[0][0]).toBe loader

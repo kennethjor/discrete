@@ -1467,7 +1467,7 @@
       queue.drain = function() {
         _this.running = false;
         _this.completed = true;
-        return done(_this);
+        return done(null, _this);
       };
       _ref2 = this._models;
       _results = [];
