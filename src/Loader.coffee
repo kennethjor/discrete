@@ -20,6 +20,7 @@ Discrete.Loader = class Loader
 	# Adds a model to the loader.
 	add: (name, model) ->
 		throw new Error "Models cannot be added to a completed Loader" if @completed
+		return @ if !name?
 		# Arrays.
 		if _.isArray name
 			for i in name
@@ -40,6 +41,7 @@ Discrete.Loader = class Loader
 			for own key, val of name
 				@add key, val
 			return @
+
 		# No custom name and model
 		if name instanceof Model
 			model = name
@@ -47,6 +49,10 @@ Discrete.Loader = class Loader
 		# Single ID.
 		else if not (name instanceof Model) and not model?
 			model = name
+
+		throw new Error "Name is not defined" unless name?
+		throw new Error "Name is not defined" unless model?
+
 		# Add to model container.
 		@_models[name] = model
 		# Push to queue.

@@ -1358,6 +1358,9 @@
       if (this.completed) {
         throw new Error("Models cannot be added to a completed Loader");
       }
+      if (name == null) {
+        return this;
+      }
       if (_.isArray(name)) {
         for (_i = 0, _len = name.length; _i < _len; _i++) {
           i = name[_i];
@@ -1390,6 +1393,12 @@
         name = model.id();
       } else if (!(name instanceof Model) && (model == null)) {
         model = name;
+      }
+      if (name == null) {
+        throw new Error("Name is not defined");
+      }
+      if (model == null) {
+        throw new Error("Name is not defined");
       }
       this._models[name] = model;
       if (this._queue) {
