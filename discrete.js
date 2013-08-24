@@ -369,7 +369,7 @@
         if (!__hasProp.call(_ref, name)) continue;
         field = _ref[name];
         relation = this.getRelation(name);
-        if (!relation.loaded()) {
+        if ((relation != null) && !relation.loaded()) {
           return false;
         }
       }

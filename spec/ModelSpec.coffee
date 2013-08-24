@@ -271,6 +271,8 @@ describe "Model", ->
 					relation: "HasOne"
 				bar:
 					relation: "HasMany"
+				norelation:
+					"default": "no relation here, move along"
 			clone: ->
 				super new RelationalModel
 

@@ -288,5 +288,6 @@ Discrete.Model = class Model
 	relationsLoaded: ->
 		for own name, field of @fields
 			relation = @getRelation name
-			return false unless relation.loaded()
+			if relation? and not relation.loaded()
+				return false
 		return true
