@@ -1353,8 +1353,37 @@
     };
 
     Loader.prototype.add = function(name, model) {
+      var i, key, val, _i, _len,
+        _this = this;
       if (this.completed) {
         throw new Error("Models cannot be added to a completed Loader");
+      }
+      if (_.isArray(name)) {
+        for (_i = 0, _len = name.length; _i < _len; _i++) {
+          i = name[_i];
+          this.add(i);
+        }
+        return this;
+      }
+      if (name instanceof Collection) {
+        name.each(function(i) {
+          return _this.add(i);
+        });
+        return this;
+      }
+      if (name instanceof Map) {
+        name.each(function(key, val) {
+          return _this.add(key, val);
+        });
+        return this;
+      }
+      if (_.isObject(name) && !(name instanceof Model)) {
+        for (key in name) {
+          if (!__hasProp.call(name, key)) continue;
+          val = name[key];
+          this.add(key, val);
+        }
+        return this;
       }
       if (name instanceof Model) {
         model = name;

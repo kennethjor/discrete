@@ -1,7 +1,7 @@
 _ = require "underscore"
 sinon = require "sinon"
 
-{Loader, Model, RepoPersistor} = require "../discrete"
+{Loader, Model, RepoPersistor, Collection, Map} = require "../discrete"
 
 describe "Loader", ->
 	class RelationModel extends Model
@@ -55,6 +55,35 @@ describe "Loader", ->
 		expect(models.foo).toBe "id:1"
 		expect(models["id:111"]).toBe m1
 		expect(models.test).toBe m2
+
+	it "should accept arrays of Models", ->
+		expect(loader.add [m1, m2]).toBe loader
+		expect(loader.get "id:111").toBe m1
+		expect(loader.get "id:222").toBe m2
+		expect(loader.get "id:333").toBeUndefined()
+
+	it "should accept objects of Models", ->
+		expect(loader.add (m1:m1, m2:m2)).toBe loader
+		expect(loader.get "m1").toBe m1
+		expect(loader.get "m2").toBe m2
+		expect(loader.get "m3").toBeUndefined()
+		expect(loader.get "id:333").toBeUndefined()
+
+	it "should accept Collections of Models", ->
+		expect(loader.add new Collection [m1, m2]).toBe loader
+		expect(loader.get "id:111").toBe m1
+		expect(loader.get "id:222").toBe m2
+		expect(loader.get "id:333").toBeUndefined()
+
+	it "should accept Maps of Models", ->
+		map = new Map
+		map.put "m1", m1
+		map.put "m2", m2
+		expect(loader.add map).toBe loader
+		expect(loader.get "m1").toBe m1
+		expect(loader.get "m2").toBe m2
+		expect(loader.get "m3").toBeUndefined()
+		expect(loader.get "id:333").toBeUndefined()
 
 	it "should load IDs, load relations, and poll on completion", ->
 		loader.add "m1", "id:111"

@@ -20,6 +20,26 @@ Discrete.Loader = class Loader
 	# Adds a model to the loader.
 	add: (name, model) ->
 		throw new Error "Models cannot be added to a completed Loader" if @completed
+		# Arrays.
+		if _.isArray name
+			for i in name
+				@add i
+			return @
+		# Collections.
+		if name instanceof Collection
+			name.each (i) =>
+				@add i
+			return @
+		# Maps.
+		if name instanceof Map
+			name.each (key, val) =>
+				@add key, val
+			return @
+		# Non-Model objects.
+		if _.isObject(name) and not (name instanceof Model)
+			for own key, val of name
+				@add key, val
+			return @
 		# No custom name and model
 		if name instanceof Model
 			model = name
