@@ -1482,6 +1482,29 @@
       return _results;
     };
 
+    Loader.prototype.saveAll = function(done) {
+      var results, saveModel,
+        _this = this;
+      results = {};
+      saveModel = function(name, done) {
+        return _this._models[name].save(function(err, model) {
+          if (err) {
+            return done(err);
+          } else {
+            results[name] = model;
+            return done(null);
+          }
+        });
+      };
+      return Async.each(_.keys(this._models), saveModel, function(err) {
+        if (err) {
+          return done(err);
+        } else {
+          return done(null, results);
+        }
+      });
+    };
+
     return Loader;
 
   })();

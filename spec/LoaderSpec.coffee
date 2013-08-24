@@ -112,3 +112,21 @@ describe "Loader", ->
 			# Saved.
 			expect(loader.get "m1").toBe m1
 			expect(loader.get "m2").toBe m2
+
+	it "should save known models", ->
+		sinon.spy m1, "save"
+		sinon.spy m2, "save"
+		sinon.spy m3, "save"
+		loader.add [m1, m2]
+		saved = sinon.spy()
+		loader.saveAll saved
+		waitsFor (-> saved.called), "Saved never called", 100
+		runs ->
+			expect(saved.callCount).toBe 1
+			expect(m1.save.callCount).toBe 1
+			expect(m2.save.callCount).toBe 1
+			expect(m3.save.callCount).toBe 0
+			models = saved.args[0][1]
+			expect(models["id:111"]).toBe m1
+			expect(models["id:222"]).toBe m2
+			expect(models["id:333"]).toBeUndefined()

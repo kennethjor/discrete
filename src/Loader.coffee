@@ -119,3 +119,19 @@ Discrete.Loader = class Loader
 			queue.push
 				name: name
 				model: model
+
+	# Saves all the known models.
+	saveAll: (done) ->
+		results = {}
+		saveModel = (name, done) =>
+			@_models[name].save (err, model) =>
+				if err
+					done err
+				else
+					results[name] = model
+					done null
+		Async.each _.keys(@_models), saveModel, (err) =>
+			if err
+				done err
+			else
+				done null, results
