@@ -130,3 +130,7 @@ describe "Loader", ->
 			expect(models["id:111"]).toBe m1
 			expect(models["id:222"]).toBe m2
 			expect(models["id:333"]).toBeUndefined()
+
+	it "should complain if adding non-models", ->
+		test = -> loader.add "index", {}
+		expect(test).toThrow "Non-model object supplied for model"

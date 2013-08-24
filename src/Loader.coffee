@@ -49,6 +49,9 @@ Discrete.Loader = class Loader
 		# Single ID.
 		else if not (name instanceof Model) and not model?
 			model = name
+		# Non-model objects.
+		if _.isObject(model) and not (model instanceof Model)
+			throw new Error "Non-model object supplied for model"
 
 		throw new Error "Name is not defined" unless name?
 		throw new Error "Name is not defined" unless model?

@@ -1394,6 +1394,9 @@
       } else if (!(name instanceof Model) && (model == null)) {
         model = name;
       }
+      if (_.isObject(model) && !(model instanceof Model)) {
+        throw new Error("Non-model object supplied for model");
+      }
       if (name == null) {
         throw new Error("Name is not defined");
       }
