@@ -100,7 +100,7 @@ Discrete.Collection = class Collection
 
 	# Iterator.
 	each: (fn) ->
-		for entry, index in @_items
+		for entry, index in _.clone @_items
 			fn.apply @, [entry, index]
 		return @
 

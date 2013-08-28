@@ -12,6 +12,7 @@
 * *Fix:* toJSON ignored all defined relations.
 * *Fix:* `HasManyRelation` will no longer lose existing `Model` instances when set with a list of IDs.
 * *Fix:* Old value was not supplied on `Model` change events.
+* *Fix:* `Collection` can now add and remove entries during iteration.
 
 ## 0.0.1 (2013-07-30)
 * Initial version after splitting modelling off from Antifreeze.

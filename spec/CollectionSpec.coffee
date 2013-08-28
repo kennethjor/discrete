@@ -84,6 +84,19 @@ describe "Collection", ->
 		collection.add val3
 		expect(clone.size()).toBe 2
 
+	it "should handle additions and removals during iteration", ->
+		collection.addAll val1, val2
+		n = 0
+		collection.each (val, index) ->
+			if index is 0
+				expect(val).toBe val1
+				collection.remove val2
+			if index is 1
+				expect(val).toBe val2
+				collection.add val2
+			n++
+		expect(n).toBe 2
+
 	describe "change events", ->
 		change = null
 		changeEvent = null

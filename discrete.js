@@ -1,4 +1,4 @@
-/*! Discrete 0.1.0-dev.3 - MIT license */
+/*! Discrete 0.1.0-dev.4 - MIT license */
 (function() {
   var Async, Calamity, Collection, Discrete, HasManyRelation, HasOneRelation, Loader, Map, Model, ModelRepo, Persistor, Relation, RepoPersistor, Set, calamity, exports, object_toString, root, _, _ref, _ref1,
     __hasProp = {}.hasOwnProperty,
@@ -35,7 +35,7 @@
   }
 
   Discrete = {
-    version: "0.1.0-dev.3"
+    version: "0.1.0-dev.4"
   };
 
   if (typeof exports !== "undefined") {
@@ -489,7 +489,7 @@
 
     Collection.prototype.each = function(fn) {
       var entry, index, _i, _len, _ref;
-      _ref = this._items;
+      _ref = _.clone(this._items);
       for (index = _i = 0, _len = _ref.length; _i < _len; index = ++_i) {
         entry = _ref[index];
         fn.apply(this, [entry, index]);
