@@ -4,6 +4,7 @@ files = [
 	"src/Collection.coffee"
 	"src/Set.coffee"
 	"src/Map.coffee"
+	"src/SortedMap.coffee"
 	"src/Persistor.coffee"
 	"src/Relation.coffee"
 	"src/Relation/HasOneRelation.coffee"

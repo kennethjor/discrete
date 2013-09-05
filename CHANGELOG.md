@@ -9,6 +9,7 @@
 * *Feature:* Implemented `contains()`, `remove()` on `HasManyRelation`.
 * *Feature:* Relations issue change events which a proxied through the model as well.
 * *Feature:* `Loader` implementation to help loader many and multiple levels of models. ([pull/1][pull/1])
+* *Feature:* Added `SortedMap`.
 * *Fix:* toJSON ignored all defined relations.
 * *Fix:* `HasManyRelation` will no longer lose existing `Model` instances when set with a list of IDs.
 * *Fix:* Old value was not supplied on `Model` change events.

@@ -1,6 +1,6 @@
 /*! Discrete 0.1.0-dev.4 - MIT license */
 (function() {
-  var Async, Calamity, Collection, Discrete, HasManyRelation, HasOneRelation, Loader, Map, Model, ModelRepo, Persistor, Relation, RepoPersistor, Set, calamity, exports, object_toString, root, _, _ref, _ref1,
+  var Async, Calamity, Collection, Discrete, HasManyRelation, HasOneRelation, Loader, Map, Model, ModelRepo, Persistor, Relation, RepoPersistor, Set, SortedMap, calamity, exports, object_toString, root, _, _ref, _ref1,
     __hasProp = {}.hasOwnProperty,
     __slice = [].slice,
     __extends = function(child, parent) { for (var key in parent) { if (__hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor(); child.__super__ = parent.prototype; return child; };
@@ -744,6 +744,73 @@
     return Map;
 
   })();
+
+  Discrete.SortedMap = SortedMap = (function(_super) {
+    __extends(SortedMap, _super);
+
+    function SortedMap(values, sorter) {
+      if (_.isFunction(values)) {
+        sorter = values;
+        values = null;
+      }
+      if (!_.isFunction(sorter)) {
+        throw new Error("Sorter is required and must be a function, " + (typeof sorter) + " supplied");
+      }
+      this._sorter = sorter;
+      SortedMap.__super__.constructor.call(this, values);
+      this._sort();
+    }
+
+    SortedMap.prototype.put = function() {
+      var r;
+      r = SortedMap.__super__.put.apply(this, arguments);
+      this._sort();
+      return r;
+    };
+
+    SortedMap.prototype.remove = function() {
+      var r;
+      r = SortedMap.__super__.remove.apply(this, arguments);
+      this._sort();
+      return r;
+    };
+
+    SortedMap.prototype.firstKey = function() {
+      if (this.size() === 0) {
+        return null;
+      }
+      return this._items[0][0];
+    };
+
+    SortedMap.prototype.lastKey = function() {
+      var s;
+      s = this.size();
+      if (s === 0) {
+        return null;
+      }
+      return this._items[s - 1][0];
+    };
+
+    SortedMap.prototype._sort = function() {
+      var _this = this;
+      if (!(this.size() > 1)) {
+        return;
+      }
+      this._items.sort(function(a, b) {
+        return _this._sorter({
+          key: a[0],
+          value: a[1]
+        }, {
+          key: b[0],
+          value: b[1]
+        });
+      });
+      return void 0;
+    };
+
+    return SortedMap;
+
+  })(Map);
 
   Discrete.Persistor = Persistor = (function() {
     function Persistor() {}
