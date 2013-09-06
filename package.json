@@ -1,7 +1,7 @@
 {
 	"fullname": "Discrete",
 	"name": "discrete",
-	"version": "0.1.0-dev.4",
+	"version": "0.1.0-dev.5",
 	"description": "Modelling framework.",
 	"keywords": ["model", "mvc", "mvp"],
 	"homepage": "https://bitbucket.org/kennethjor/discrete",
@@ -33,6 +33,9 @@
 		"prepublish": "grunt"
 	},
 	"main": "discrete.js",
+	"scripts": {
+		"prepublish": "grunt"
+	},
 	"licenses": [
 		{
 			"type": "MIT",
