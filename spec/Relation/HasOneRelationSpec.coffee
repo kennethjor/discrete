@@ -51,9 +51,33 @@ describe "HasOneRelation", ->
 	it "should not lose the model if ID is being set", ->
 		model = new Model id:42
 		relation.set model
+		expect(relation.model()).toBe model
 		# Set new ID.
 		relation.id 42
 		expect(relation.model()).toBe model
+
+	it "should preserve model instances when being set by another relation", ->
+		model = new Model id:42
+		relation = new HasOne
+		relation.set 42
+		newRelation = new HasOne
+		newRelation.set model
+		relation.set newRelation
+		expect(relation.id()).toBe 42
+		expect(relation.model()).toBe model
+		expect(relation.get()).toBe model
+
+	it "should not lose model instances when being set by another relation", ->
+		model = new Model id:42
+		model = new Model id:42
+		relation = new HasOne
+		relation.set model
+		newRelation = new HasOne
+		newRelation.set 42
+		relation.set newRelation
+		expect(relation.id()).toBe 42
+		expect(relation.model()).toBe model
+		expect(relation.get()).toBe model
 
 	it "should serialize to IDs, and preserve data type", ->
 		# Int.

@@ -24,9 +24,11 @@ Discrete.RepoPersistor = class RepoPersistor extends Persistor
 		model = repo.get id
 		unless model?
 			_.defer -> callback new Error("not-found"), null
+#			callback new Error("not-found"), null
 			return
 		if _.isFunction callback
 			_.defer => callback null, model
+#			callback null, model
 
 	# Saves a model.
 	save: (model, callback) ->

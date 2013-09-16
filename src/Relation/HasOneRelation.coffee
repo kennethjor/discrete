@@ -14,6 +14,9 @@ Relation.register "HasOne", class HasOneRelation extends Relation
 		id = null
 		model = null
 		change = false
+		# If another relation was passed, import the values from it.
+		if modelOrId instanceof HasOneRelation
+			modelOrId = modelOrId.model() or modelOrId.id()
 		# Set model.
 		if modelOrId instanceof Model
 			@verifyType modelOrId

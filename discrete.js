@@ -1,4 +1,4 @@
-/*! Discrete 0.1.0-dev.4 - MIT license */
+/*! Discrete 0.1.0-dev.5 - MIT license */
 (function() {
   var Async, Calamity, Collection, Discrete, HasManyRelation, HasOneRelation, Loader, Map, Model, ModelRepo, Persistor, Relation, RepoPersistor, Set, SortedMap, calamity, exports, object_toString, root, _, _ref, _ref1,
     __hasProp = {}.hasOwnProperty,
@@ -35,7 +35,7 @@
   }
 
   Discrete = {
-    version: "0.1.0-dev.4"
+    version: "0.1.0-dev.5"
   };
 
   if (typeof exports !== "undefined") {
@@ -117,7 +117,7 @@
     };
 
     Model.prototype.setRelation = function(name, relation) {
-      var sub, subs,
+      var subs,
         _this = this;
       if (!(relation instanceof Relation)) {
         throw new Error("Relation must be a Relation instance, " + (typeof relation) + " supplied");
@@ -125,26 +125,26 @@
       if (this._relations[name] === relation) {
         return this;
       }
-      subs = this._relationChangeSubscriptions;
-      sub = subs[name];
-      if (sub) {
-        sub.unsubscribe();
-        delete subs[name];
+      if (!this._relations[name]) {
+        relation = relation;
+        this._relations[name] = relation;
+        subs = this._relationChangeSubscriptions;
+        subs[name] = relation.on("change", (function(name) {
+          return function(msg) {
+            var relationEventCatcher, triggers;
+            relationEventCatcher = _this._relationEventCatcher;
+            if (relationEventCatcher) {
+              return relationEventCatcher(name, msg.data);
+            } else {
+              triggers = {};
+              triggers[name] = msg.data;
+              return _this._triggerChanges(triggers);
+            }
+          };
+        })(name));
+      } else {
+        this._relations[name].set(relation);
       }
-      subs[name] = relation.on("change", (function(name) {
-        return function(msg) {
-          var relationEventCatcher, triggers;
-          relationEventCatcher = _this._relationEventCatcher;
-          if (relationEventCatcher) {
-            return relationEventCatcher(name, msg.data);
-          } else {
-            triggers = {};
-            triggers[name] = msg.data;
-            return _this._triggerChanges(triggers);
-          }
-        };
-      })(name));
-      this._relations[name] = relation;
       return this;
     };
 
@@ -933,6 +933,9 @@
       id = null;
       model = null;
       change = false;
+      if (modelOrId instanceof HasOneRelation) {
+        modelOrId = modelOrId.model() || modelOrId.id();
+      }
       if (modelOrId instanceof Model) {
         this.verifyType(modelOrId);
         this._model = model = modelOrId;
@@ -1191,6 +1194,9 @@
         _this = this;
       if (modelsOrIds === null) {
         modelsOrIds = [];
+      }
+      if (modelsOrIds instanceof HasManyRelation) {
+        modelsOrIds = modelsOrIds.get();
       }
       if (modelsOrIds instanceof Collection) {
         modelsOrIds = modelsOrIds.toJSON();
@@ -1576,6 +1582,7 @@
         if (err) {
           return done(err);
         } else {
+          _this._models = results;
           return done(null, results);
         }
       });

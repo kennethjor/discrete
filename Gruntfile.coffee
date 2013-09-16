@@ -39,6 +39,7 @@ module.exports = (grunt) ->
 				expand: true
 				cwd: ""
 				src: "build/spec/**/*.js"
+#				src: "build/spec/ModelSpec.js"
 
 		coffeelint:
 			src:

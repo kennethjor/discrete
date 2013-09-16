@@ -67,28 +67,33 @@ Discrete.Model = class Model
 		return relation
 
 	# Sets the current relation to a specific instance.
-	# *WARNING: Don't use this method unless you know exactly what you're doing.*
+	# **WARNING**: *Don't use this method unless you know exactly what you're doing.*
 	setRelation: (name, relation) ->
 		throw new Error "Relation must be a Relation instance, #{typeof relation} supplied" unless relation instanceof Relation
 		# Ignore noops.
 		return @ if @_relations[name] is relation
-		# Clear old change subscription.
-		subs = @_relationChangeSubscriptions
-		sub = subs[name]
-		if sub
-			sub.unsubscribe()
-			delete subs[name]
-		# Bind change events.
-		subs[name] = relation.on "change", do (name) => (msg) =>
-			relationEventCatcher = @_relationEventCatcher
-			if relationEventCatcher
-				relationEventCatcher name, msg.data
-			else
-				triggers = {}
-				triggers[name] = msg.data
-				@_triggerChanges triggers
-		# Store it.
-		@_relations[name] = relation
+
+
+		# NEW METHOD: copy content rather than clone.
+		unless @_relations[name]
+			# Clone relation to disassociate it with any other models.
+			relation = relation #.clone()
+			# Save it.
+			@_relations[name] = relation
+			# Bind event.
+			subs = @_relationChangeSubscriptions
+			subs[name] = relation.on "change", do (name) => (msg) =>
+				relationEventCatcher = @_relationEventCatcher
+				if relationEventCatcher
+					relationEventCatcher name, msg.data
+				else
+					triggers = {}
+					triggers[name] = msg.data
+					@_triggerChanges triggers
+		# Transfer values from supplied relation to this one.
+		else
+			@_relations[name].set relation
+
 		return @
 
 	# ID getter/setter.

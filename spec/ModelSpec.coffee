@@ -346,6 +346,38 @@ describe "Model", ->
 			expect(model2.get("foo")).toBe m1
 			expect(model2.get("bar").size()).toBe 2
 
+		it "should not forget old relation instances when setting from a model with only IDs", ->
+			m1 = new Model id:1
+			m2 = new Model id:2
+			m3 = new Model id:3
+			m4 = new Model id:4
+			m6 = new Model id:6
+			m8 = new Model id:8
+			# Prepare old model.
+			model.set
+				foo: m1
+				bar: [1, 2, m3, m4, 7, m8]
+			# Prepare new model.
+			newModel = new RelationalModel
+			newModel.set
+				foo: 1
+				bar: [1, m2, 3, m4, 5, m6]
+			# Transfer values.
+			model.set newModel
+			# Instances should not have been forgotten.
+			foo = model.getRelation("foo")
+			expect(foo.id()).toBe 1
+			expect(foo.model()).toBe m1
+			expect(model.get "foo").toBe m1
+			bar = model.get "bar"
+			expect(bar.contains 1).toBe true
+			expect(bar.contains m2).toBe true
+			expect(bar.contains m3).toBe true
+			expect(bar.contains m4).toBe true
+			expect(bar.contains 5).toBe true
+			expect(bar.contains m6).toBe true
+			expect(bar.size()).toBe 6
+
 		it "should convert to JSON", ->
 			m1 = new Model id:1
 			model.set foo:m1

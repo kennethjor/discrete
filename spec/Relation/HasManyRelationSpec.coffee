@@ -172,6 +172,49 @@ describe "HasManyRelation", ->
 		expect(collection.contains m6).toBe true
 		expect(collection.size()).toBe 6
 
+	it "should effeciently handle setting from another relation", ->
+		oldRelation = new HasMany
+		newRelation = new HasMany
+		# 1 :: ID <- ID = ID
+		oldRelation.add 1
+		newRelation.add 1
+		# 2 :: ID <- Model = Model
+		m2 = new Model id:2
+		oldRelation.add 2
+		newRelation.add m2
+		# 3 :: Model <- ID = Model
+		m3 = new Model id:3
+		oldRelation.add m3
+		newRelation.add 3
+		# 4 :: Model <- Model = Model
+		m4 = new Model id:4
+		oldRelation.add m4
+		newRelation.add m4
+		# 5 :: undefined <- ID = ID
+		newRelation.add 5
+		# 6 :: undefined <- Model = Model
+		m6 = new Model id:6
+		newRelation.add m6
+		# 7 :: ID <- undefined = null
+		oldRelation.add 7
+		# 8 :: Model <- undefined = null
+		m8 = new Model id:8
+		oldRelation.add m8
+		# Verify sizes
+		expect(oldRelation.get().size()).toBe 6
+		expect(newRelation.get().size()).toBe 6
+		# Overwrite.
+		oldRelation.set newRelation
+		# Verify
+		collection = oldRelation.get()
+		expect(collection.contains 1).toBe true
+		expect(collection.contains m2).toBe true
+		expect(collection.contains m3).toBe true
+		expect(collection.contains m4).toBe true
+		expect(collection.contains 5).toBe true
+		expect(collection.contains m6).toBe true
+		expect(collection.size()).toBe 6
+
 	describe "cloning", ->
 		m1 = new Model id:1
 		m2 = new Model id:2

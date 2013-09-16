@@ -143,4 +143,5 @@ Discrete.Loader = class Loader
 			if err
 				done err
 			else
+				@_models = results
 				done null, results
