@@ -39,14 +39,14 @@ describe "Loader", ->
 		expect(loader.add "id:0").toBe loader
 		expect(loader.get "id:0").toBe "id:0"
 		# With custom index and id.
-		expect(loader.add "foo", "id:1").toBe loader
+		expect(loader.add foo: "id:1").toBe loader
 		expect(loader.get "foo").toBe "id:1"
 		# No custom index and model.
 		expect(loader.add m1).toBe loader
 		expect(loader.get "id:111").toBe m1
 		expect(loader.get "id:222").toBeUndefined()
 		# With custom index and model.
-		expect(loader.add "test", m2).toBe loader
+		expect(loader.add test: m2).toBe loader
 		expect(loader.get "test").toBe m2
 		expect(loader.get "id:222").toBeUndefined()
 		# Return all.
@@ -86,10 +86,10 @@ describe "Loader", ->
 		expect(loader.get "id:333").toBeUndefined()
 
 	it "should load IDs, load relations, and poll on completion", ->
-		loader.add "m1", "id:111"
+		loader.add m1: "id:111"
 		loader.poll poll = sinon.spy (loader, name, model) ->
 			if name is "m1"
-				loader.add "m2", model.get "forward"
+				loader.add m2: model.get "forward"
 		loader.load done
 		waitsFor (-> done.called), "Done never called", 100
 		runs ->
@@ -132,5 +132,8 @@ describe "Loader", ->
 			expect(models["id:333"]).toBeUndefined()
 
 	it "should complain if adding non-models", ->
-		test = -> loader.add "index", {}
+		test = -> loader.add index: {}
 		expect(test).toThrow "Non-model object supplied for model"
+
+	it "should complain when adding models wrong", ->
+		expect(-> loader.add "key", "val").toThrow "Expected one argument, 2 supplied"

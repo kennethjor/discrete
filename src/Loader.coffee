@@ -18,52 +18,60 @@ Discrete.Loader = class Loader
 		return @persistor = new persistor()
 
 	# Adds a model to the loader.
-	add: (name, model) ->
-		#throw new Error "Models cannot be added to a completed Loader" if @completed
-		return @ if !name?
-		# Arrays.
-		if _.isArray name
-			for i in name
-				@add i
-			return @
-		# Collections.
-		if name instanceof Collection
-			name.each (i) =>
-				@add i
-			return @
-		# Maps.
-		if name instanceof Map
-			name.each (key, val) =>
-				@add key, val
-			return @
-		# Non-Model objects.
-		if _.isObject(name) and not (name instanceof Model)
-			for own key, val of name
-				@add key, val
-			return @
-
-		# No custom name and model
-		if name instanceof Model
-			model = name
-			name = model.id()
-		# Single ID.
-		else if not (name instanceof Model) and not model?
-			model = name
-		# Non-model objects.
-		if _.isObject(model) and not (model instanceof Model)
-			throw new Error "Non-model object supplied for model"
-
-		throw new Error "Name is not defined" unless name?
-		throw new Error "Name is not defined" unless model?
-
-		# Add to model container.
-		@_models[name] = model
-		# Push to queue.
-		if @_queue
-			@_queue.push
-				name: name
-				model: model
+	add: (models) ->
+		throw new Error "No models supplied" unless models
+		throw new Error "Expected one argument, #{arguments.length} supplied" unless arguments.length is 1
+		map = {}
+		# Convert collection to array.
+		if models instanceof Collection
+			models = models.toJSON()
+		# Convert array to object.
+		if _.isArray models
+			for model in models
+				continue unless model?
+				# Models.
+				if model instanceof Model
+					id = model.id()
+					throw new Error "Model '#{model.type}' does not have an ID" unless id?
+					map[id] = model
+				# IDs.
+				else
+					map[model] = model
+		# Convert Map objects.
+		else if models instanceof Map
+			models.each (key, model) =>
+				map[key] = model
+		# Single models.
+		else if models instanceof Model
+			map[models.id()] = models
+		# Actual map objects.
+		else if _.isObject models
+			for own key, val of models
+				map[key] = val
+		# Single stings.
+		else if _.isString(models) or _.isNumber(models)
+			map[models] = models
+		else
+			throw new Error "Models must be either Collection, array, Map, Model, Object, or string or number, '#{typeof models}' supplied"
+		# Everything valid has now been converted to a simple map object, add it all to be loaded.
+		for own name, model of map
+			if _.isObject(model) and not (model instanceof Model)
+				throw new Error "Non-model object supplied for model"
+			#console.log name, model
+			# Add to model container.
+			@_models[name] = model
+			# Push to queue.
+			if @_queue
+				@_queue.push
+					name: name
+					model: model
 		return @
+
+	# Adds a single model to be loaded.
+	# This an internal function.
+	# `add()` should be used instead.
+	_addSingle: (key, model) ->
+
 
 	# Returns an added model.
 	get: (name) ->
@@ -113,8 +121,10 @@ Discrete.Loader = class Loader
 				done()
 			# Execute task.
 			Async.waterfall handlers, (err) =>
-				throw err if err
-				done()
+				if err
+					done err
+				else
+					done null
 
 		# Start queue.
 		@_queue = queue = Async.queue worker, @concurrency

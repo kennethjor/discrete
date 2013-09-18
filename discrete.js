@@ -1368,19 +1368,23 @@
     RepoPersistor.reset();
 
     RepoPersistor.prototype.load = function(id, callback) {
-      var model,
-        _this = this;
+      var err, model;
       model = repo.get(id);
       if (model == null) {
-        _.defer(function() {
-          return callback(new Error("not-found"), null);
-        });
+        err = new Error("not-found");
+        (function(err) {
+          return _.defer(function() {
+            return callback(err, null);
+          });
+        })(err);
         return;
       }
       if (_.isFunction(callback)) {
-        return _.defer(function() {
-          return callback(null, model);
-        });
+        return (function(model) {
+          return _.defer(function() {
+            return callback(null, model);
+          });
+        })(model);
       }
     };
 
@@ -1389,9 +1393,11 @@
       id = model.id();
       model = repo.put(model);
       if (_.isFunction(callback)) {
-        return _.defer(function() {
-          return callback(null, model);
-        });
+        return (function(model) {
+          return _.defer(function() {
+            return callback(null, model);
+          });
+        })(model);
       }
     };
 
@@ -1425,63 +1431,70 @@
       return this.persistor = new persistor();
     };
 
-    Loader.prototype.add = function(name, model) {
-      var i, key, val, _i, _len,
+    Loader.prototype.add = function(models) {
+      var id, key, map, model, name, val, _i, _len,
         _this = this;
-      if (name == null) {
-        return this;
+      if (!models) {
+        throw new Error("No models supplied");
       }
-      if (_.isArray(name)) {
-        for (_i = 0, _len = name.length; _i < _len; _i++) {
-          i = name[_i];
-          this.add(i);
+      if (arguments.length !== 1) {
+        throw new Error("Expected one argument, " + arguments.length + " supplied");
+      }
+      map = {};
+      if (models instanceof Collection) {
+        models = models.toJSON();
+      }
+      if (_.isArray(models)) {
+        for (_i = 0, _len = models.length; _i < _len; _i++) {
+          model = models[_i];
+          if (model == null) {
+            continue;
+          }
+          if (model instanceof Model) {
+            id = model.id();
+            if (id == null) {
+              throw new Error("Model '" + model.type + "' does not have an ID");
+            }
+            map[id] = model;
+          } else {
+            map[model] = model;
+          }
         }
-        return this;
-      }
-      if (name instanceof Collection) {
-        name.each(function(i) {
-          return _this.add(i);
+      } else if (models instanceof Map) {
+        models.each(function(key, model) {
+          return map[key] = model;
         });
-        return this;
-      }
-      if (name instanceof Map) {
-        name.each(function(key, val) {
-          return _this.add(key, val);
-        });
-        return this;
-      }
-      if (_.isObject(name) && !(name instanceof Model)) {
-        for (key in name) {
-          if (!__hasProp.call(name, key)) continue;
-          val = name[key];
-          this.add(key, val);
+      } else if (models instanceof Model) {
+        map[models.id()] = models;
+      } else if (_.isObject(models)) {
+        for (key in models) {
+          if (!__hasProp.call(models, key)) continue;
+          val = models[key];
+          map[key] = val;
         }
-        return this;
+      } else if (_.isString(models) || _.isNumber(models)) {
+        map[models] = models;
+      } else {
+        throw new Error("Models must be either Collection, array, Map, Model, Object, or string or number, '" + (typeof models) + "' supplied");
       }
-      if (name instanceof Model) {
-        model = name;
-        name = model.id();
-      } else if (!(name instanceof Model) && (model == null)) {
-        model = name;
-      }
-      if (_.isObject(model) && !(model instanceof Model)) {
-        throw new Error("Non-model object supplied for model");
-      }
-      if (name == null) {
-        throw new Error("Name is not defined");
-      }
-      if (model == null) {
-        throw new Error("Name is not defined");
-      }
-      this._models[name] = model;
-      if (this._queue) {
-        this._queue.push({
-          name: name,
-          model: model
-        });
+      for (name in map) {
+        if (!__hasProp.call(map, name)) continue;
+        model = map[name];
+        if (_.isObject(model) && !(model instanceof Model)) {
+          throw new Error("Non-model object supplied for model");
+        }
+        this._models[name] = model;
+        if (this._queue) {
+          this._queue.push({
+            name: name,
+            model: model
+          });
+        }
       }
       return this;
     };
+
+    Loader.prototype._addSingle = function(key, model) {};
 
     Loader.prototype.get = function(name) {
       return this._models[name];
@@ -1540,9 +1553,10 @@
         });
         return Async.waterfall(handlers, function(err) {
           if (err) {
-            throw err;
+            return done(err);
+          } else {
+            return done(null);
           }
-          return done();
         });
       };
       this._queue = queue = Async.queue(worker, this.concurrency);
