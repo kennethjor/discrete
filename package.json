@@ -1,7 +1,7 @@
 {
 	"fullname": "Discrete",
 	"name": "discrete",
-	"version": "0.1.0-dev.6",
+	"version": "0.1.0-dev.7",
 	"description": "Modelling framework.",
 	"keywords": ["model", "mvc", "mvp"],
 	"homepage": "https://bitbucket.org/kennethjor/discrete",
@@ -10,6 +10,10 @@
 	"repository": {
 		"type": "hg",
 		"url": "ssh://hg@bitbucket.org/kennethjor/discrete"
+	},
+	"main": "discrete.js",
+	"scripts": {
+		"prepublish": "grunt"
 	},
 	"dependencies": {
 		"underscore":               ">= 1.5.1",
@@ -28,13 +32,6 @@
 	},
 	"engines": {
 		"node": ">= 0.8.0"
-	},
-	"scripts": {
-		"prepublish": "grunt"
-	},
-	"main": "discrete.js",
-	"scripts": {
-		"prepublish": "grunt"
 	},
 	"licenses": [
 		{
