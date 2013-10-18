@@ -61,7 +61,7 @@ Discrete.Loader = class Loader
 			# Add to model container.
 			@_models[name] = model
 			# Push to queue.
-			if @_queue
+			if @_queue and not @completed
 				@_queue.push
 					name: name
 					model: model

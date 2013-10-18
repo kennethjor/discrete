@@ -113,6 +113,20 @@ describe "Loader", ->
 			expect(loader.get "m1").toBe m1
 			expect(loader.get "m2").toBe m2
 
+	it "should not start fetching more models when loading is completed", ->
+		loader.load done
+		loader.add m1: "id:111"
+		waitsFor (-> done.called), "Done never called", 100
+		defer = sinon.spy()
+		runs ->
+			expect(done.callCount).toBe 1
+			loader.add m2: "id:222"
+			expect(done.callCount).toBe 1
+			_.defer defer
+		waitsFor (-> defer.called), "Defer never called", 100
+		runs ->
+			expect(done.callCount).toBe 1
+
 	it "should save known models", ->
 		sinon.spy m1, "save"
 		sinon.spy m2, "save"

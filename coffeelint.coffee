@@ -22,7 +22,7 @@ module.exports =
 	"no_throwing_strings":
 		"level": "error"
 	"cyclomatic_complexity":
-		"value": 19
+		"value": 20
 		"level": "error"
 	"no_backticks":
 		"level": "error"

@@ -1,4 +1,4 @@
-/*! Discrete 0.1.0-dev.6 - MIT license */
+/*! Discrete 0.1.0-dev.7 - MIT license */
 (function() {
   var Async, Calamity, Collection, Discrete, HasManyRelation, HasOneRelation, Loader, Map, Model, ModelRepo, Persistor, Relation, RepoPersistor, Set, SortedMap, calamity, exports, object_toString, root, _, _ref, _ref1,
     __hasProp = {}.hasOwnProperty,
@@ -35,7 +35,7 @@
   }
 
   Discrete = {
-    version: "0.1.0-dev.6"
+    version: "0.1.0-dev.7"
   };
 
   if (typeof exports !== "undefined") {
@@ -1484,7 +1484,7 @@
           throw new Error("Non-model object supplied for model");
         }
         this._models[name] = model;
-        if (this._queue) {
+        if (this._queue && !this.completed) {
           this._queue.push({
             name: name,
             model: model
