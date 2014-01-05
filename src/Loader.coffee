@@ -53,7 +53,7 @@ Discrete.Loader = class Loader
 			map[models] = models
 		else
 			throw new Error "Models must be either Collection, array, Map, Model, Object, or string or number, '#{typeof models}' supplied"
-		# Everything valid has now been converted to a simple map object, add it all to be loaded.
+		# Everything valid has now been converted to a simple hashmap, add it all to be loaded.
 		for own name, model of map
 			if _.isObject(model) and not (model instanceof Model)
 				throw new Error "Non-model object supplied for model"
@@ -105,20 +105,10 @@ Discrete.Loader = class Loader
 						@_models[task.name] = model
 						# Pass.
 						done null, model
-			# Next we need to load the relation of the model.
-			handlers.push (model, done) =>
-				if model.relationsLoaded()
-					done null, model
-				else
-					model.loadRelations (err) =>
-						if err
-							done err
-							return
-						done null, model
 			# Finally we need to supply the prepared model to the polling function.
 			handlers.push (model, done) =>
 				@_poll @, task.name, model if _.isFunction @_poll
-				done()
+				done null
 			# Execute task.
 			Async.waterfall handlers, (err) =>
 				if err
@@ -135,9 +125,12 @@ Discrete.Loader = class Loader
 			done null, @ # @todo catch errors
 		# Populate queue with initial tasks.
 		for own name, model of @_models
-			queue.push
+			task =
 				name: name
 				model: model
+			queue.push task, (err) =>
+				if err
+					done err
 
 	# Saves all the known models.
 	saveAll: (done) ->

@@ -52,7 +52,8 @@ Relation.register "HasOne", class HasOneRelation extends Relation
 	model: ->
 		return @_model
 
-	get: -> @model()
+	get: ->
+		return @model() or @id()
 
 	# Returns true if this relation doesn't point to a foreign model.
 	empty: ->

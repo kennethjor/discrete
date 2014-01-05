@@ -1,4 +1,4 @@
-/*! Discrete 0.1.0-dev.7 - MIT license */
+/*! Discrete 0.1.0-dev.8 - MIT license */
 (function() {
   var Async, Calamity, Collection, Discrete, HasManyRelation, HasOneRelation, Loader, Map, Model, ModelRepo, Persistor, Relation, RepoPersistor, Set, SortedMap, calamity, exports, object_toString, root, _, _ref, _ref1,
     __hasProp = {}.hasOwnProperty,
@@ -35,7 +35,7 @@
   }
 
   Discrete = {
-    version: "0.1.0-dev.7"
+    version: "0.1.0-dev.8"
   };
 
   if (typeof exports !== "undefined") {
@@ -976,7 +976,7 @@
     };
 
     HasOneRelation.prototype.get = function() {
-      return this.model();
+      return this.model() || this.id();
     };
 
     HasOneRelation.prototype.empty = function() {
@@ -1512,7 +1512,7 @@
     };
 
     Loader.prototype.load = function(done) {
-      var model, name, queue, worker, _ref2, _results,
+      var model, name, queue, task, worker, _ref2, _results,
         _this = this;
       this.running = true;
       worker = function(task, done) {
@@ -1533,23 +1533,10 @@
           }
         });
         handlers.push(function(model, done) {
-          if (model.relationsLoaded()) {
-            return done(null, model);
-          } else {
-            return model.loadRelations(function(err) {
-              if (err) {
-                done(err);
-                return;
-              }
-              return done(null, model);
-            });
-          }
-        });
-        handlers.push(function(model, done) {
           if (_.isFunction(_this._poll)) {
             _this._poll(_this, task.name, model);
           }
-          return done();
+          return done(null);
         });
         return Async.waterfall(handlers, function(err) {
           if (err) {
@@ -1570,9 +1557,14 @@
       for (name in _ref2) {
         if (!__hasProp.call(_ref2, name)) continue;
         model = _ref2[name];
-        _results.push(queue.push({
+        task = {
           name: name,
           model: model
+        };
+        _results.push(queue.push(task, function(err) {
+          if (err) {
+            return done(err);
+          }
         }));
       }
       return _results;

@@ -22,8 +22,8 @@ describe "Loader", ->
 		m1.set
 			forward: m2.id()
 		m2.set
-			forward: m3.id()
 			back: m1.id()
+			forward: m3.id()
 		m3.set
 			back: m2.id()
 		# Loader.
@@ -87,17 +87,27 @@ describe "Loader", ->
 
 	it "should load IDs, load relations, and poll on completion", ->
 		loader.add m1: "id:111"
+		# Create spies on the loadRelation functions.
+		m1loadRelations = sinon.spy m1, "loadRelations"
+		m2loadRelations = sinon.spy m2, "loadRelations"
+		m3loadRelations = sinon.spy m3, "loadRelations"
+		# When m1 is loaded, add the forward relation, which is m2.
 		loader.poll poll = sinon.spy (loader, name, model) ->
 			if name is "m1"
-				loader.add m2: model.get "forward"
+				id = model.getRelation("forward").id()
+				loader.add m2: id
 		loader.load done
 		waitsFor (-> done.called), "Done never called", 100
 		runs ->
-			# Done.
+			# Loader should never call loadRelations.
+			expect(m1loadRelations.callCount).toBe 0
+			expect(m2loadRelations.callCount).toBe 0
+			expect(m3loadRelations.callCount).toBe 0
+			# Done should be called once with no error and the loader as argument.
 			expect(done.callCount).toBe 1
 			expect(done.args[0][0]).toBe null
 			expect(done.args[0][1]).toBe loader
-			# Poll.
+			# Poll should be called twice, once with `m1` and one with `m2`.
 			expect(poll.callCount).toBe 2
 			expect(poll.args[0][0]).toBe loader
 			expect(poll.args[0][1]).toBe "m1"
@@ -105,13 +115,20 @@ describe "Loader", ->
 			expect(poll.args[1][0]).toBe loader
 			expect(poll.args[1][1]).toBe "m2"
 			expect(poll.args[1][2]).toBe m2
-			# Check relations.
-			expect(m1.relationsLoaded()).toBe true
-			expect(m2.relationsLoaded()).toBe true
-			expect(m3.relationsLoaded()).toBe false # m3 was never explicitly added, and thus not loaded.
-			# Saved.
+			# `m1` relations.
+#			expect(m1.get "forward").toBe m2 # loaded explicitly.
+#			expect(m1.relationsLoaded()).toBe true # m2 was added explicitly.
+			# `m2` relations.
+#			expect(m2.get "back").toBe m1 # loaded explicitly.
+#			expect(m2.get "forward").toBe m3.id() # not loaded explicitly.
+#			expect(m2.relationsLoaded()).toBe false # m1 was added, but m3 wasn't.
+			# `m3` relations.
+#			expect(m3.get "back").toBe m2.id() # not loaded explicitly. Theoretically this should come from the repo or something. Future feature.
+#			expect(m3.relationsLoaded()).toBe false # m3 was never explicitly added, and thus not loaded.
+			# Check contents.
 			expect(loader.get "m1").toBe m1
 			expect(loader.get "m2").toBe m2
+			expect(loader.get "m3").toBe undefined
 
 	it "should not start fetching more models when loading is completed", ->
 		loader.load done

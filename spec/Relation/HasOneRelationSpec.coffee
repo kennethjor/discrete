@@ -23,7 +23,7 @@ describe "HasOneRelation", ->
 		expect(relation.empty()).toBe false
 		expect(relation.id()).toBe 42
 		expect(relation.model()).toBe null
-		expect(relation.get()).toBe null
+		expect(relation.get()).toBe 42
 		# Strings
 		relation.set "id:42"
 		expect(relation.loaded()).toBe false
@@ -102,7 +102,7 @@ describe "HasOneRelation", ->
 			data = change.getCall(0).args[0].data
 			expect(data.relation).toBe relation
 			expect(data.id).toBe 1
-			expect(data.value).toBe null
+			expect(data.value).toBe 1
 
 	it "should fire change events when setting a model", ->
 		m1 = new Model id:1
@@ -159,7 +159,7 @@ describe "HasOneRelation", ->
 			expect(clone).not.toBe relation
 			expect(clone.id()).toBe 1
 			expect(clone.model()).toBe null
-			expect(clone.get()).toBe null
+			expect(clone.get()).toBe 1
 			# Modify from original, should not affect clone.
 			relation.set 2
 			expect(clone.id()).toBe 1
