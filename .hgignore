@@ -1,10 +1,11 @@
-syntax: regexp
+syntax: glob
 
 node_modules/
-\.idea/(?!codeStyleSettings\.xml)
+bower_components/
+.idea/
 build/
-^dist/
-^temp/
-^npm-debug\.log$
-^\.DS_Store$
+dist/
+temp/
+npm-debug.log
+.DS_Store
 

@@ -1,4 +1,4 @@
-/*! Discrete 0.1.0-dev.8 - MIT license */
+/*! Discrete 0.1.0-dev.9 - MIT license */
 (function() {
   var Async, Calamity, Collection, Discrete, HasManyRelation, HasOneRelation, Loader, Map, Model, ModelRepo, Persistor, Relation, RepoPersistor, Set, SortedMap, calamity, exports, object_toString, root, _, _ref, _ref1,
     __hasProp = {}.hasOwnProperty,
@@ -35,7 +35,7 @@
   }
 
   Discrete = {
-    version: "0.1.0-dev.8"
+    version: "0.1.0-dev.9"
   };
 
   if (typeof exports !== "undefined") {
