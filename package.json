@@ -1,7 +1,7 @@
 {
 	"fullname": "Discrete",
 	"name": "discrete",
-	"version": "0.1.0-dev.9",
+	"version": "0.1.0-dev",
 	"description": "Modelling framework.",
 	"keywords": ["model", "mvc", "mvp"],
 	"homepage": "https://bitbucket.org/kennethjor/discrete",
@@ -17,7 +17,7 @@
 	},
 	"dependencies": {
 		"underscore":               "~1.5.1",
-		"calamity":                 "~0.5.0-rc.5",
+		"calamity":                 "~0.5.0-dev",
 		"async":                    "~0.2.9"
 	},
 	"devDependencies": {

@@ -1,7 +1,7 @@
 {
   "name": "discrete",
   "main": "discrete.js",
-  "version": "0.1.0-dev.9",
+  "version": "0.1.0-dev",
   "authors": [
     "Kenneth Jorgensen <kennethjor@gmail.com>"
   ],
@@ -19,7 +19,7 @@
   ],
   "dependencies": {
     "underscore": "~1.6.0",
-    "calamity": "~0.5.0-rc.5",
+    "calamity": "~0.5.0-dev",
     "async": "~0.2.9"
   }
 }
